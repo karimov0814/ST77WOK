@@ -464,9 +464,23 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// Admin tekshirish — URL parameter orqali
+// Admin tekshirish — bir necha usul bilan
 const urlParams = new URLSearchParams(window.location.search);
-const isAdmin = urlParams.get('admin') === '1';
+const adminByUrl = urlParams.get('admin') === '1';
+
+// initDataUnsafe dan ID olish
+const tgUser = tg.initDataUnsafe?.user;
+const userId = tgUser?.id || 0;
+const adminById = (userId === ADMIN_CHAT_ID);
+
+const isAdmin = adminByUrl || adminById;
+
+// DEBUG — konsolda ko'rish uchun
+console.log('URL admin:', adminByUrl);
+console.log('User ID:', userId, '| Admin ID:', ADMIN_CHAT_ID, '| Match:', adminById);
+console.log('initData:', tg.initData ? 'bor' : 'yoq');
+console.log('initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
+console.log('FINAL isAdmin:', isAdmin);
 
 if (isAdmin) {
   showScreen('admin');
