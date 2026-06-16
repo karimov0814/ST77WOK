@@ -181,10 +181,28 @@
   .admin-header h1 { font-size: 20px; font-weight: 700; }
   .admin-badge { background: var(--orange); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
 
-  .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+  /* VAQT FILTRI */
+  .time-filter-row {
+    display: flex; gap: 6px; margin-top: 14px; flex-wrap: nowrap;
+  }
+  .time-btn {
+    flex: 1; padding: 7px 4px; border-radius: 20px;
+    font-family: inherit; font-size: 11px; font-weight: 600;
+    border: 1.5px solid rgba(255,255,255,0.25); background: transparent;
+    color: rgba(255,255,255,0.65); cursor: pointer;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    transition: all 0.15s; white-space: nowrap; text-align: center;
+  }
+  .time-btn.active {
+    background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.7);
+    color: white;
+  }
+
+  .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
   .stat-card { background: rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
   .stat-num { font-size: 22px; font-weight: 700; color: white; }
   .stat-lbl { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .stat-period { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 3px; }
 
   /* MAIN TABS */
   .main-tabs {
@@ -442,10 +460,26 @@
       <h1>📊 Admin Panel</h1>
       <div class="admin-badge">ADMIN</div>
     </div>
+    <div class="time-filter-row">
+      <button class="time-btn active" data-period="all">Barcha vaqt</button>
+      <button class="time-btn" data-period="week">1 hafta</button>
+      <button class="time-btn" data-period="month">1 oy</button>
+      <button class="time-btn" data-period="year">1 yil</button>
+    </div>
     <div class="admin-stats">
-      <div class="stat-card"><div class="stat-num" id="stat-total">—</div><div class="stat-lbl">Jami</div></div>
-      <div class="stat-card"><div class="stat-num" id="stat-taklif">—</div><div class="stat-lbl">Takliflar</div></div>
-      <div class="stat-card"><div class="stat-num" id="stat-shikoyat">—</div><div class="stat-lbl">Shikoyatlar</div></div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total">—</div>
+        <div class="stat-lbl">Jami</div>
+        <div class="stat-period" id="stat-period-lbl"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-taklif">—</div>
+        <div class="stat-lbl">Takliflar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-shikoyat">—</div>
+        <div class="stat-lbl">Shikoyatlar</div>
+      </div>
     </div>
   </div>
 
@@ -499,6 +533,7 @@ let allMessages = [];
 let currentMainTab = 'all';
 let currentSubTab = 'new';
 let currentAnonFilter = 'all';
+let currentPeriod = 'all';
 
 const tg = window.Telegram?.WebApp || {};
 if (tg.ready) tg.ready();
@@ -605,17 +640,57 @@ async function submitForm() {
   }
 }
 
+// ===== VAQT FILTER YORDAMCHI =====
+function parseMessageDate(m) {
+  // Server "time" maydoni: "16.06.2025, 14:32:00" yoki ISO string yoki timestamp
+  if (!m.time) return null;
+  // ISO yoki timestamp
+  var d = new Date(m.time);
+  if (!isNaN(d)) return d;
+  // "DD.MM.YYYY, HH:MM:SS" formatini parse qilish
+  var match = String(m.time).match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if (match) return new Date(match[3] + '-' + match[2] + '-' + match[1]);
+  return null;
+}
+
+function filterByPeriod(msgs, period) {
+  if (period === 'all') return msgs;
+  var now = new Date();
+  var cutoff = new Date();
+  if (period === 'week')  cutoff.setDate(now.getDate() - 7);
+  if (period === 'month') cutoff.setMonth(now.getMonth() - 1);
+  if (period === 'year')  cutoff.setFullYear(now.getFullYear() - 1);
+  return msgs.filter(function(m) {
+    var d = parseMessageDate(m);
+    return d && d >= cutoff;
+  });
+}
+
+function periodLabel(period) {
+  if (period === 'week')  return 'so\'nggi 7 kun';
+  if (period === 'month') return 'so\'nggi 30 kun';
+  if (period === 'year')  return 'so\'nggi 1 yil';
+  return '';
+}
+
 // ===== ADMIN =====
 function updateStats() {
-  var total = allMessages.length;
-  var taklifC = allMessages.filter(m => m.type === 'taklif').length;
-  var shikoyatC = allMessages.filter(m => m.type === 'shikoyat').length;
+  var filtered = filterByPeriod(allMessages, currentPeriod);
+  var total = filtered.length;
+  var taklifC = filtered.filter(m => m.type === 'taklif').length;
+  var shikoyatC = filtered.filter(m => m.type === 'shikoyat').length;
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-taklif').textContent = taklifC;
   document.getElementById('stat-shikoyat').textContent = shikoyatC;
-  document.getElementById('tc-all').textContent = total;
-  document.getElementById('tc-taklif').textContent = taklifC;
-  document.getElementById('tc-shikoyat').textContent = shikoyatC;
+  var lbl = document.getElementById('stat-period-lbl');
+  if (lbl) lbl.textContent = periodLabel(currentPeriod);
+  // Tab count larni esa BARCHA xabarlardan hisoblaymiz (filter faqat statistika uchun)
+  var allTotal = allMessages.length;
+  var allTaklif = allMessages.filter(m => m.type === 'taklif').length;
+  var allShikoyat = allMessages.filter(m => m.type === 'shikoyat').length;
+  document.getElementById('tc-all').textContent = allTotal;
+  document.getElementById('tc-taklif').textContent = allTaklif;
+  document.getElementById('tc-shikoyat').textContent = allShikoyat;
 }
 
 function getByMainTab(tab) {
@@ -814,6 +889,16 @@ document.addEventListener('DOMContentLoaded', function() {
       var cls = currentSubTab === 'new' ? 'active-new' : currentSubTab === 'progress' ? 'active-progress' : 'active-done';
       this.classList.add(cls);
       refreshView();
+    });
+  });
+
+  // Vaqt filtri tugmalari
+  document.querySelectorAll('.time-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.time-btn').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      currentPeriod = this.getAttribute('data-period');
+      updateStats();
     });
   });
 
