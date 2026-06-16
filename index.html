@@ -42,11 +42,9 @@
     padding-bottom: env(safe-area-inset-bottom, 20px);
   }
 
-  /* ===== SCREENS ===== */
   .screen { display: none; padding: 20px 16px; }
   .screen.active { display: block; }
 
-  /* ===== HEADER ===== */
   .header {
     background: var(--blue);
     padding: 20px 16px 16px;
@@ -64,7 +62,6 @@
   .header h1 { font-size: 20px; font-weight: 700; }
   .header p { font-size: 13px; opacity: 0.8; margin-left: 52px; }
 
-  /* ===== EMPLOYEE SCREEN ===== */
   .section-title {
     font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.08em;
@@ -151,7 +148,6 @@
   .anonymous-info .anon-text .title { font-size: 14px; font-weight: 600; color: var(--gray-800); }
   .anonymous-info .anon-text .sub { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
 
-  /* Toggle */
   .toggle {
     width: 44px; height: 24px;
     background: var(--gray-200);
@@ -184,14 +180,6 @@
   }
   .btn-submit:active { transform: scale(0.98); }
   .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-submit.loading::after {
-    content: '';
-    width: 16px; height: 16px;
-    border: 2px solid rgba(255,255,255,0.4);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
 
   .field-error {
     font-size: 12px; color: var(--red);
@@ -199,7 +187,6 @@
   }
   .field-error.show { display: block; }
 
-  /* ===== SUCCESS SCREEN ===== */
   #screen-success {
     display: none;
     flex-direction: column;
@@ -238,10 +225,7 @@
     cursor: pointer;
   }
 
-  /* ===== ADMIN SCREEN ===== */
-  #screen-admin {
-    display: none; padding: 0;
-  }
+  #screen-admin { display: none; padding: 0; }
   #screen-admin.active { display: block; }
 
   .admin-header {
@@ -284,9 +268,7 @@
     cursor: pointer; white-space: nowrap;
     transition: all 0.15s;
   }
-  .filter-btn.active {
-    background: var(--blue); color: white; border-color: var(--blue);
-  }
+  .filter-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
 
   .messages-list { padding: 12px 16px; }
   .message-card {
@@ -307,26 +289,17 @@
   .msg-type-badge.taklif { background: var(--green-light); color: var(--green); }
   .msg-type-badge.shikoyat { background: var(--red-light); color: var(--red); }
   .msg-time { font-size: 11px; color: var(--gray-400); }
-  .msg-filial {
-    font-size: 12px; color: var(--blue); font-weight: 500;
-    margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
-  }
+  .msg-filial { font-size: 12px; color: var(--blue); font-weight: 500; margin-bottom: 8px; }
   .msg-text { font-size: 14px; line-height: 1.6; color: var(--gray-800); }
-  .msg-footer { margin-top: 10px; display: flex; align-items: center; justify-content: space-between; }
-  .msg-sender { font-size: 12px; color: var(--gray-400); display: flex; align-items: center; gap: 4px; }
+  .msg-footer { margin-top: 10px; }
+  .msg-sender { font-size: 12px; color: var(--gray-400); }
   .msg-anon { font-size: 12px; color: var(--amber); font-weight: 500; }
 
-  .empty-state {
-    text-align: center; padding: 60px 24px;
-    color: var(--gray-400);
-  }
+  .empty-state { text-align: center; padding: 60px 24px; color: var(--gray-400); }
   .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
   .empty-state p { font-size: 15px; }
 
-  .loading-state {
-    text-align: center; padding: 60px 24px;
-    color: var(--gray-400);
-  }
+  .loading-state { text-align: center; padding: 60px 24px; color: var(--gray-400); }
   .spinner {
     width: 32px; height: 32px;
     border: 3px solid var(--gray-200);
@@ -360,7 +333,6 @@
   </div>
 
   <div style="padding: 0 0 32px;">
-
     <div class="section-title" style="padding: 0 16px;">Murojaat turini tanlang!</div>
     <div class="type-grid" style="padding: 0 16px;">
       <div class="type-card" id="card-taklif" onclick="selectType('taklif')">
@@ -384,11 +356,11 @@
           <option value="Novza">Novza</option>
           <option value="Yunusobod Gallery">Yunusobod Gallery</option>
           <option value="Compass">Compass</option>
-           <option value="Sergeli">Sergeli</option>
-           <option value="Anhor">Anhor</option>
-           <option value="Scopus Mall">Scopus Mall</option>
-           <option value="Eco">Eco</option>
-           <option value="Andijon Navruz">Andijon Navruz</option>
+          <option value="Sergeli">Sergeli</option>
+          <option value="Anhor">Anhor</option>
+          <option value="Scopus Mall">Scopus Mall</option>
+          <option value="Eco">Eco</option>
+          <option value="Andijon Navruz">Andijon Navruz</option>
           <option value="Beruniy">Beruniy</option>
           <option value="Glinka">Glinka</option>
           <option value="City Mall">City Mall</option>
@@ -463,14 +435,12 @@
       </div>
     </div>
   </div>
-
   <div class="admin-filters">
     <button class="filter-btn active" onclick="filterMessages('all', this)">Hammasi</button>
     <button class="filter-btn" onclick="filterMessages('taklif', this)">💡 Takliflar</button>
     <button class="filter-btn" onclick="filterMessages('shikoyat', this)">⚠️ Shikoyatlar</button>
     <button class="filter-btn" onclick="filterMessages('anon', this)">🕵️ Anonimlar</button>
   </div>
-
   <div class="messages-list" id="messages-list">
     <div class="loading-state">
       <div class="spinner"></div>
@@ -481,8 +451,8 @@
 
 <script>
 // ==================== CONFIG ====================
-const BOT_TOKEN = 'YOUR_BOT_TOKEN'; // <-- Bot tokeningizni shu yerga qo'ying
-const ADMIN_CHAT_ID = 123456789; // <-- Sizning Telegram ID RAQAMINGIZ (qo'shtirnoqsiz!)
+// FAQAT admin ID kerak (token kerak emas — tg.sendData() ishlatiladi)
+const ADMIN_CHAT_ID = 7780854728;
 
 // ==================== STATE ====================
 let selectedType = '';
@@ -494,12 +464,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// Admin aniqlash — ID raqam sifatida taqqoslanadi
 const userId = tg.initDataUnsafe?.user?.id || 0;
 const isAdmin = (userId === ADMIN_CHAT_ID);
-
-// DEBUG: Konsolda ko'rish uchun (keyin o'chirish mumkin)
-console.log('Sizning ID:', userId, '| Admin ID:', ADMIN_CHAT_ID, '| Admin:', isAdmin);
 
 if (isAdmin) {
   showScreen('admin');
@@ -525,8 +491,7 @@ function selectType(type) {
 // ==================== ANON TOGGLE ====================
 function toggleAnon() {
   isAnon = !isAnon;
-  const toggle = document.getElementById('anon-toggle');
-  toggle.classList.toggle('on', isAnon);
+  document.getElementById('anon-toggle').classList.toggle('on', isAnon);
 }
 
 // ==================== CHAR COUNT ====================
@@ -552,76 +517,39 @@ function validate() {
   return ok;
 }
 
-// ==================== SUBMIT ====================
-async function submitForm() {
+// ==================== SUBMIT (tg.sendData() orqali) ====================
+function submitForm() {
   if (!validate()) return;
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span>';
-  btn.classList.add('loading');
+  btn.innerHTML = '<span>⏳</span> <span>Yuborilmoqda...</span>';
 
   const filial = document.getElementById('filial-select').value;
   const text = document.getElementById('msg-text').value.trim();
-  const user = tg.initDataUnsafe?.user;
-  const userName = user ? (user.first_name + (user.last_name ? ' ' + user.last_name : '')) : 'Noma\'lum';
-  const username = user?.username ? '@' + user.username : '';
 
-  const typeEmoji = selectedType === 'taklif' ? '💡' : '⚠️';
-  const typeLabel = selectedType === 'taklif' ? 'TAKLIF' : 'SHIKOYAT';
-  const anonText = isAnon ? '🕵️ Anonim' : `👤 ${userName}${username ? ' ' + username : ''}`;
-
-  const message =
-`${typeEmoji} <b>${typeLabel}</b>
-━━━━━━━━━━━━━━━━━━
-🏢 <b>Filial:</b> ${filial}
-${anonText}
-📅 <b>Vaqt:</b> ${new Date().toLocaleString('uz-UZ', {timeZone: 'Asia/Tashkent'})}
-━━━━━━━━━━━━━━━━━━
-💬 <b>Matn:</b>
-${text}`;
+  const payload = JSON.stringify({
+    type: selectedType,
+    filial: filial,
+    text: text,
+    anon: isAnon,
+    time: new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })
+  });
 
   try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: ADMIN_CHAT_ID,
-        text: message,
-        parse_mode: 'HTML'
-      })
-    });
-
-    const data = await res.json();
-
-    if (data.ok) {
-      tg.HapticFeedback?.notificationOccurred('success');
-      showScreen('success');
-    } else {
-      throw new Error(data.description);
-    }
+    tg.sendData(payload);
+    // sendData muvaffaqiyatli — Mini App yopilishi mumkin, lekin success ekran ko'rsatamiz
+    tg.HapticFeedback?.notificationOccurred('success');
+    showScreen('success');
   } catch (err) {
-    console.error('Xatolik:', err.message);
+    console.error('sendData xatolik:', err);
     btn.disabled = false;
-    btn.classList.remove('loading');
-
-    // Aniq xatolik sababini ko'rsatish
-    let errMsg = 'Xatolik';
-    if (err.message.includes('bot was blocked')) errMsg = 'Bot blok qilingan';
-    else if (err.message.includes('chat not found')) errMsg = 'Chat topilmadi — ID noto\'g\'ri';
-    else if (err.message.includes('Unauthorized')) errMsg = 'Token noto\'g\'ri';
-    else if (err.message.includes('Failed to fetch')) errMsg = 'Internet aloqasi yo\'q';
-
-    btn.innerHTML = `<span>❌</span> <span>${errMsg}</span>`;
+    btn.innerHTML = '<span>❌</span> <span>Xatolik — qayta urining</span>';
     tg.HapticFeedback?.notificationOccurred('error');
-
-    // Konsolda to'liq xatolikni ko'rish
-    console.error('API xatolik tafsiloti:', err.message);
-
     setTimeout(() => {
       btn.disabled = false;
       btn.innerHTML = '<span>📤</span> <span>Yuborish</span>';
-    }, 4000);
+    }, 3000);
   }
 }
 
@@ -638,19 +566,17 @@ function resetForm() {
   document.getElementById('char-count').textContent = '0 / 1000';
   document.getElementById('anon-toggle').classList.remove('on');
   document.getElementById('submit-btn').disabled = false;
-  document.getElementById('submit-btn').classList.remove('loading');
   document.getElementById('submit-btn').innerHTML = '<span>📤</span> <span>Yuborish</span>';
   ['err-type', 'err-filial', 'err-text'].forEach(hideError);
   showScreen('employee');
 }
 
 // ==================== ADMIN: LOAD MESSAGES ====================
-// NOTE: Production'da backend API kerak. Bu demo uchun bot messages o'qiladi.
 async function loadAdminMessages() {
+  const BOT_TOKEN = '8919742379:AAG_mBtlsxU4DluKoeXUvCfn2mscdZ1pP1M';
   try {
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=100`);
     const data = await res.json();
-
     if (!data.ok) throw new Error('API xatoligi');
 
     allMessages = [];
@@ -664,7 +590,6 @@ async function loadAdminMessages() {
         }
       });
     }
-
     updateStats();
     renderMessages(allMessages);
   } catch (err) {
@@ -675,29 +600,22 @@ async function loadAdminMessages() {
 
 function parseMessage(msg) {
   const text = msg.text || '';
-  const isShikoyat = text.includes('SHIKOYAT');
-  const isTaklif = text.includes('TAKLIF');
   const isAnon = text.includes('Anonim');
-
   let filial = '';
   const filialMatch = text.match(/Filial:\s*(.+)/);
   if (filialMatch) filial = filialMatch[1].trim();
-
   let content = '';
   const contentMatch = text.match(/Matn:\n([\s\S]+)$/);
   if (contentMatch) content = contentMatch[1].trim();
-
   let sender = '';
   const senderMatch = text.match(/👤\s*(.+)/);
   if (senderMatch) sender = senderMatch[1].trim();
-
   let time = '';
   const timeMatch = text.match(/Vaqt:\s*(.+)/);
   if (timeMatch) time = timeMatch[1].trim();
-
   return {
     id: msg.message_id,
-    type: isShikoyat ? 'shikoyat' : 'taklif',
+    type: text.includes('SHIKOYAT') ? 'shikoyat' : 'taklif',
     filial, content, sender, time, isAnon
   };
 }
@@ -727,9 +645,7 @@ function renderMessages(msgs) {
   list.innerHTML = msgs.map(m => `
     <div class="message-card">
       <div class="msg-header">
-        <span class="msg-type-badge ${m.type}">
-          ${m.type === 'taklif' ? '💡 TAKLIF' : '⚠️ SHIKOYAT'}
-        </span>
+        <span class="msg-type-badge ${m.type}">${m.type === 'taklif' ? '💡 TAKLIF' : '⚠️ SHIKOYAT'}</span>
         <span class="msg-time">${m.time || ''}</span>
       </div>
       ${m.filial ? `<div class="msg-filial">🏢 ${m.filial}</div>` : ''}
