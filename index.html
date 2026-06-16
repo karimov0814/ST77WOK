@@ -607,31 +607,23 @@ function renderMessages(msgs) {
         '<span class="msg-time">' + escapeHtml(m.time) + '</span>' +
       '</div>' +
       (m.filial ? '<div class="msg-filial">🏢 ' + escapeHtml(m.filial) + '</div>' : '') +
-      '<div class="msg-text">' + escapeHtml(m.content) + '</div>' +
+      '<div class="msg-text">' + escapeHtml(m.text || m.content || '') + '</div>' +
       '<div class="msg-footer">' +
-        (m.isAnon
+        ((m.anon || m.isAnon)
           ? '<span class="msg-anon">🕵️ Anonim</span>'
-          : '<span class="msg-sender">👤 ' + escapeHtml(m.sender) + '</span>') +
+          : '<span class="msg-sender">👤 ' + escapeHtml(m.sender || '') + '</span>') +
       '</div>' +
     '</div>';
   }).join('');
 }
 
 async function loadAdminMessages() {
-  var BOT_TOKEN = '8919742379:AAG_mBtlsxU4DluKoeXUvCfn2mscdZ1pP1M';
   try {
-    var res = await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/getUpdates?limit=100');
+    var res = await fetch(SERVER_URL + '/messages');
     var data = await res.json();
     allMessages = [];
-    if (data.result) {
-      data.result.reverse().forEach(function(update) {
-        var msg = update.message;
-        if (msg && msg.text && String(msg.chat.id) === String(ADMIN_CHAT_ID)) {
-          if (msg.text.includes('TAKLIF') || msg.text.includes('SHIKOYAT')) {
-            allMessages.push(parseMessage(msg));
-          }
-        }
-      });
+    if (data.ok && data.messages) {
+      allMessages = data.messages;
     }
     updateStats();
     renderMessages(allMessages);
