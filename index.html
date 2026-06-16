@@ -323,6 +323,18 @@
   .msg-sender { font-size: 12px; color: var(--gray-400); }
   .msg-anon { font-size: 12px; color: var(--amber); font-weight: 500; }
 
+  .status-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .status-btn {
+    padding: 5px 12px; border-radius: 20px;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    border: 1.5px solid var(--gray-200); background: white;
+    cursor: pointer; color: var(--gray-600);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .status-btn.active-new { background: #FEF2F2; border-color: #DC2626; color: #DC2626; }
+  .status-btn.active-progress { background: #FFFBEB; border-color: #D97706; color: #D97706; }
+  .status-btn.active-done { background: #F0FDF4; border-color: #16A34A; color: #16A34A; }
+
   .empty-state { text-align: center; padding: 60px 24px; color: var(--gray-400); }
   .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
 
@@ -446,6 +458,9 @@
   </div>
   <div class="admin-filters">
     <button class="filter-btn active" data-filter="all">Hammasi <span class="filter-count" id="count-all"></span></button>
+    <button class="filter-btn" data-filter="new">🔴 Yangi <span class="filter-count" id="count-new"></span></button>
+    <button class="filter-btn" data-filter="progress">🟡 Jarayonda <span class="filter-count" id="count-progress"></span></button>
+    <button class="filter-btn" data-filter="done">🟢 Ko'rilgan <span class="filter-count" id="count-done"></span></button>
     <button class="filter-btn" data-filter="taklif">💡 Takliflar <span class="filter-count" id="count-taklif"></span></button>
     <button class="filter-btn" data-filter="shikoyat">⚠️ Shikoyatlar <span class="filter-count" id="count-shikoyat"></span></button>
     <button class="filter-btn" data-filter="anon">🕵️ Anonimlar <span class="filter-count" id="count-anon"></span></button>
@@ -608,12 +623,18 @@ function updateStats() {
   var taklifCount = allMessages.filter(function(m) { return m.type === 'taklif'; }).length;
   var shikoyatCount = allMessages.filter(function(m) { return m.type === 'shikoyat'; }).length;
   var anonCount = allMessages.filter(function(m) { return m.anon || m.isAnon; }).length;
+  var newCount = allMessages.filter(function(m) { return (m.status || 'new') === 'new'; }).length;
+  var progressCount = allMessages.filter(function(m) { return m.status === 'progress'; }).length;
+  var doneCount = allMessages.filter(function(m) { return m.status === 'done'; }).length;
 
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-taklif').textContent = taklifCount;
   document.getElementById('stat-shikoyat').textContent = shikoyatCount;
 
   document.getElementById('count-all').textContent = total;
+  document.getElementById('count-new').textContent = newCount;
+  document.getElementById('count-progress').textContent = progressCount;
+  document.getElementById('count-done').textContent = doneCount;
   document.getElementById('count-taklif').textContent = taklifCount;
   document.getElementById('count-shikoyat').textContent = shikoyatCount;
   document.getElementById('count-anon').textContent = anonCount;
@@ -621,32 +642,25 @@ function updateStats() {
 
 function renderMessages(msgs) {
   var list = document.getElementById('messages-list');
-  if (!msgs || !msgs.length) {
+  if (!msgs.length) {
     list.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><p>Murojaatlar yo\'q</p></div>';
     return;
   }
-  var html = '';
-  for (var i = 0; i < msgs.length; i++) {
-    var m = msgs[i];
-    var isAnon = m.anon === true || m.isAnon === true;
-    var textContent = escapeHtml(m.text || m.content || '');
-    var filialHtml = m.filial ? '<div class="msg-filial">🏢 ' + escapeHtml(m.filial) + '</div>' : '';
-    var senderHtml = isAnon
-      ? '<span class="msg-anon">🕵️ Anonim</span>'
-      : '<span class="msg-sender">👤 ' + escapeHtml(m.sender || 'Noma\'lum') + '</span>';
-    var badge = m.type === 'taklif' ? '💡 TAKLIF' : '⚠️ SHIKOYAT';
-
-    html += '<div class="message-card">';
-    html += '<div class="msg-header">';
-    html += '<span class="msg-type-badge ' + m.type + '">' + badge + '</span>';
-    html += '<span class="msg-time">' + escapeHtml(m.time || '') + '</span>';
-    html += '</div>';
-    html += filialHtml;
-    html += '<div class="msg-text">' + textContent + '</div>';
-    html += '<div class="msg-footer">' + senderHtml + '</div>';
-    html += '</div>';
-  }
-  list.innerHTML = html;
+  list.innerHTML = msgs.map(function(m) {
+    return '<div class="message-card">' +
+      '<div class="msg-header">' +
+        '<span class="msg-type-badge ' + m.type + '">' + (m.type === 'taklif' ? '💡 TAKLIF' : '⚠️ SHIKOYAT') + '</span>' +
+        '<span class="msg-time">' + escapeHtml(m.time) + '</span>' +
+      '</div>' +
+      (m.filial ? '<div class="msg-filial">🏢 ' + escapeHtml(m.filial) + '</div>' : '') +
+      '<div class="msg-text">' + escapeHtml(m.text || m.content || '') + '</div>' +
+      '<div class="msg-footer">' +
+        ((m.anon || m.isAnon)
+          ? '<span class="msg-anon">🕵️ Anonim</span>'
+          : '<span class="msg-sender">👤 ' + escapeHtml(m.sender || '') + '</span>') +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 async function loadAdminMessages() {
@@ -713,12 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
       this.classList.add('active');
-      var filter = this.getAttribute('data-filter');
-      var filtered = allMessages;
-      if (filter === 'taklif') filtered = allMessages.filter(function(m) { return m.type === 'taklif'; });
-      if (filter === 'shikoyat') filtered = allMessages.filter(function(m) { return m.type === 'shikoyat'; });
-      if (filter === 'anon') filtered = allMessages.filter(function(m) { return m.anon || m.isAnon; });
-      renderMessages(filtered);
+      applyFilter(this.getAttribute('data-filter'));
     });
   });
 
