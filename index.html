@@ -38,7 +38,6 @@
     color: var(--gray-900);
     min-height: 100vh;
     padding-bottom: env(safe-area-inset-bottom, 20px);
-    /* Prevent body scroll interfering with swipe */
     overscroll-behavior: none;
   }
 
@@ -208,7 +207,7 @@
   }
   .main-tab.active .tab-count { background: var(--orange); color: white; }
 
-  /* SUB TABS — FIX: touch-action pan-x only, no page scroll */
+  /* SUB TABS */
   .sub-tabs-wrapper {
     background: white; padding: 10px 16px;
     border-bottom: 1px solid var(--gray-200);
@@ -218,10 +217,9 @@
   .sub-tabs {
     display: flex; gap: 6px; flex: 1;
     overflow-x: auto;
-    /* KEY FIX: only allow horizontal scroll, block vertical/page swipe */
     touch-action: pan-x;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
     overscroll-behavior-x: contain;
   }
   .sub-tabs::-webkit-scrollbar { display: none; }
@@ -231,12 +229,10 @@
     font-family: inherit; font-size: 12px; font-weight: 600;
     border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
     cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
-    /* Allow tap but not interfere with scroll */
     touch-action: manipulation;
     transition: all 0.15s;
   }
 
-  /* Sub tab active states — ramka rangi bilan ajrat, dot yo'q */
   .sub-tab.active-new    { border-color: var(--red);   background: var(--red-light);   color: var(--red);   }
   .sub-tab.active-progress { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
   .sub-tab.active-done   { border-color: var(--green); background: var(--green-light); color: var(--green); }
@@ -288,10 +284,8 @@
     background: white; border-radius: var(--radius);
     padding: 14px 14px 12px; margin-bottom: 10px;
     box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
-    /* FIX: left border shows status, no dot inside card */
     border-left: 4px solid var(--gray-200);
   }
-  /* Card left border color by status */
   .message-card.sl-new      { border-left-color: var(--red); }
   .message-card.sl-progress { border-left-color: var(--amber); }
   .message-card.sl-done     { border-left-color: var(--green); }
@@ -299,7 +293,6 @@
   .msg-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
   .msg-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
-  /* Type badge — only border color, no dot */
   .msg-type-badge {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 11px; font-weight: 700; padding: 3px 9px;
@@ -308,7 +301,6 @@
   .msg-type-badge.taklif  { border-color: var(--green); color: var(--green); background: var(--green-light); }
   .msg-type-badge.shikoyat { border-color: var(--red);   color: var(--red);   background: var(--red-light);  }
 
-  /* Status badge — border color only, no dot emoji */
   .msg-status-badge {
     display: inline-flex; align-items: center;
     font-size: 10px; font-weight: 600; padding: 3px 8px;
@@ -321,11 +313,19 @@
   .msg-time { font-size: 11px; color: var(--gray-400); flex-shrink: 0; }
   .msg-filial { font-size: 12px; color: var(--orange); font-weight: 500; margin-bottom: 6px; }
   .msg-text { font-size: 14px; line-height: 1.6; color: var(--gray-800); margin-bottom: 10px; }
-  .msg-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  .msg-footer {
+    display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
   .msg-sender { font-size: 12px; color: var(--gray-400); }
   .msg-anon { font-size: 12px; color: var(--amber); font-weight: 500; }
 
-  /* Status buttons inside card — border color only */
+  .msg-footer-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Status buttons */
   .status-row { display: flex; gap: 5px; flex-wrap: wrap; }
   .status-btn {
     padding: 5px 11px; border-radius: 6px;
@@ -338,15 +338,16 @@
   .status-btn.cur-progress { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
   .status-btn.cur-done     { border-color: var(--green); background: var(--green-light); color: var(--green); }
 
-  /* DELETE BUTTON */
-  .message-card { position: relative; }
+  /* DELETE BUTTON — pastki o'ng burchakda */
   .delete-btn {
-    position: absolute; top: 12px; right: 12px;
-    background: none; border: none; padding: 0;
+    background: none; border: none; padding: 4px;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
     touch-action: manipulation; color: var(--red);
-    opacity: 0.55; line-height: 1;
+    opacity: 0.55; line-height: 1; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
   }
+  .delete-btn:active { opacity: 1; background: var(--red-light); }
   .delete-btn svg { display: block; width: 16px; height: 16px; }
 
   .empty-state { text-align: center; padding: 60px 24px; color: var(--gray-400); }
@@ -649,8 +650,17 @@ function renderMessages(msgs) {
   }
   list.innerHTML = msgs.map(function(m) {
     var s = getStatus(m);
-    var deleteBtnHtml = (s === 'done') ? '<button class="delete-btn" onclick="deleteMessage(\'' + escapeHtml(m.id) + '\',this)" title="O\'chirish"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h10M6 4V3h4v1M5 4v8h6V4H5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' : '';
-    return '<div class="message-card ' + slClass(s) + '">' + deleteBtnHtml +
+
+    /* Delete tugmasi — faqat "done" statusida, pastki o'ng burchakda */
+    var deleteBtnHtml = (s === 'done')
+      ? '<button class="delete-btn" onclick="deleteMessage(\'' + escapeHtml(m.id) + '\',this)" title="O\'chirish">' +
+          '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M3 4h10M6 4V3h4v1M5 4v8h6V4H5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '</svg>' +
+        '</button>'
+      : '';
+
+    return '<div class="message-card ' + slClass(s) + '">' +
       '<div class="msg-header">' +
         '<div class="msg-meta">' +
           '<span class="msg-type-badge ' + m.type + '">' + (m.type === 'taklif' ? 'TAKLIF' : 'SHIKOYAT') + '</span>' +
@@ -666,12 +676,15 @@ function renderMessages(msgs) {
             ? '<span class="msg-anon">🕵️ Anonim</span>'
             : '<span class="msg-sender">👤 ' + escapeHtml(m.sender || '') + '</span>') +
         '</div>' +
-        '<div class="status-row">' +
-          ['new','progress','done'].map(function(st) {
-            var labels = {new:'Yangi', progress:"Ko'rib chiqilmoqda", done:'Yakunlandi'};
-            var cls = (s === st || (s === 'in_progress' && st === 'progress')) ? statusBtnClass(st) : '';
-            return '<button class="status-btn ' + cls + '" onclick="changeStatus(\'' + escapeHtml(m.id) + '\',\'' + st + '\',this)">' + labels[st] + '</button>';
-          }).join('') +
+        '<div class="msg-footer-right">' +
+          '<div class="status-row">' +
+            ['new','progress','done'].map(function(st) {
+              var labels = {new:'Yangi', progress:"Ko'rib chiqilmoqda", done:'Yakunlandi'};
+              var cls = (s === st || (s === 'in_progress' && st === 'progress')) ? statusBtnClass(st) : '';
+              return '<button class="status-btn ' + cls + '" onclick="changeStatus(\'' + escapeHtml(m.id) + '\',\'' + st + '\',this)">' + labels[st] + '</button>';
+            }).join('') +
+          '</div>' +
+          deleteBtnHtml +
         '</div>' +
       '</div>' +
     '</div>';
@@ -786,7 +799,6 @@ document.addEventListener('DOMContentLoaded', function() {
       this.classList.add('active');
       currentMainTab = this.getAttribute('data-tab');
       currentSubTab = 'new';
-      // reset sub tabs
       document.querySelectorAll('.sub-tab').forEach(function(b) { b.className = 'sub-tab'; });
       document.querySelector('[data-sub="new"]').classList.add('active-new');
       document.getElementById('filter-icon-btn').style.display = currentMainTab === 'all' ? 'flex' : 'none';
