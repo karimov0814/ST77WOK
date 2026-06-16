@@ -38,6 +38,8 @@
     color: var(--gray-900);
     min-height: 100vh;
     padding-bottom: env(safe-area-inset-bottom, 20px);
+    /* Prevent body scroll interfering with swipe */
+    overscroll-behavior: none;
   }
 
   .screen { display: none; }
@@ -76,6 +78,7 @@
     border: 2px solid var(--gray-200); border-radius: var(--radius);
     padding: 16px 12px; text-align: center; cursor: pointer; background: white;
     -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    transition: all 0.15s;
   }
   .type-card .icon { font-size: 28px; margin-bottom: 8px; }
   .type-card .label { font-size: 13px; font-weight: 600; color: var(--gray-800); }
@@ -188,7 +191,6 @@
   .main-tabs {
     display: flex; background: white;
     border-bottom: 2px solid var(--gray-200);
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
   }
   .main-tab {
     flex: 1; padding: 12px 8px; text-align: center;
@@ -196,7 +198,6 @@
     color: var(--gray-400); border: none; background: none; cursor: pointer;
     border-bottom: 2px solid transparent; margin-bottom: -2px;
     white-space: nowrap; -webkit-tap-highlight-color: transparent;
-    position: relative;
   }
   .main-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
   .main-tab .tab-count {
@@ -207,33 +208,48 @@
   }
   .main-tab.active .tab-count { background: var(--orange); color: white; }
 
-  /* SUB TABS */
+  /* SUB TABS — FIX: touch-action pan-x only, no page scroll */
   .sub-tabs-wrapper {
     background: white; padding: 10px 16px;
     border-bottom: 1px solid var(--gray-200);
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
+    position: relative;
   }
-  .sub-tabs { display: flex; gap: 6px; flex: 1; }
+  .sub-tabs {
+    display: flex; gap: 6px; flex: 1;
+    overflow-x: auto;
+    /* KEY FIX: only allow horizontal scroll, block vertical/page swipe */
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    overscroll-behavior-x: contain;
+  }
+  .sub-tabs::-webkit-scrollbar { display: none; }
+
   .sub-tab {
-    padding: 6px 12px; border-radius: 20px;
+    padding: 7px 14px; border-radius: 20px; flex-shrink: 0;
     font-family: inherit; font-size: 12px; font-weight: 600;
     border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
     cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+    /* Allow tap but not interfere with scroll */
+    touch-action: manipulation;
+    transition: all 0.15s;
   }
-  .sub-tab.active-new { background: var(--red-light); border-color: var(--red); color: var(--red); }
-  .sub-tab.active-progress { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
-  .sub-tab.active-done { background: var(--green-light); border-color: var(--green); color: var(--green); }
-  .sub-tab.active-all { background: var(--orange-light); border-color: var(--orange); color: var(--orange); }
-  .sub-tab .sc { font-size: 10px; font-weight: 700; margin-left: 3px; }
 
-  /* FILTER BUTTON (only on Hammasi tab) */
+  /* Sub tab active states — ramka rangi bilan ajrat, dot yo'q */
+  .sub-tab.active-new    { border-color: var(--red);   background: var(--red-light);   color: var(--red);   }
+  .sub-tab.active-progress { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
+  .sub-tab.active-done   { border-color: var(--green); background: var(--green-light); color: var(--green); }
+  .sub-tab.active-all    { border-color: var(--orange);background: var(--orange-light);color: var(--orange);}
+
+  /* FILTER BUTTON */
   .filter-icon-btn {
     width: 34px; height: 34px; border-radius: 10px;
     border: 1.5px solid var(--gray-200); background: white;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; flex-shrink: 0; font-size: 16px;
     -webkit-tap-highlight-color: transparent; position: relative;
+    touch-action: manipulation;
   }
   .filter-icon-btn.has-filter { border-color: var(--orange); background: var(--orange-light); }
   .filter-icon-btn .filter-dot {
@@ -245,10 +261,9 @@
 
   /* FILTER DROPDOWN */
   .filter-dropdown {
-    display: none; position: absolute; right: 16px; top: 100%;
+    display: none; position: absolute; right: 16px; top: calc(100% + 4px);
     background: white; border-radius: var(--radius); box-shadow: var(--shadow);
     border: 1px solid var(--gray-200); z-index: 100; min-width: 160px; overflow: hidden;
-    margin-top: 6px;
   }
   .filter-dropdown.open { display: block; }
   .filter-dropdown-title { font-size: 11px; font-weight: 600; color: var(--gray-400); padding: 10px 14px 6px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -256,15 +271,16 @@
     display: flex; align-items: center; gap: 10px;
     padding: 10px 14px; cursor: pointer; font-size: 13px; font-weight: 500;
     color: var(--gray-800); -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-  .filter-option:hover { background: #F9FAFB; }
+  .filter-option:active { background: #F9FAFB; }
   .filter-checkbox {
     width: 18px; height: 18px; border-radius: 5px;
     border: 2px solid var(--gray-200); background: white;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-size: 11px; font-weight: 700;
   }
-  .filter-checkbox.checked { background: var(--orange); border-color: var(--orange); }
-  .filter-checkbox.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+  .filter-checkbox.checked { background: var(--orange); border-color: var(--orange); color: white; }
 
   /* MESSAGE CARDS */
   .messages-list { padding: 12px 16px; }
@@ -272,27 +288,35 @@
     background: white; border-radius: var(--radius);
     padding: 14px 14px 12px; margin-bottom: 10px;
     box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
-    border-left: 3px solid var(--gray-200);
+    /* FIX: left border shows status, no dot inside card */
+    border-left: 4px solid var(--gray-200);
   }
-  .message-card.sl-new { border-left-color: var(--red); }
+  /* Card left border color by status */
+  .message-card.sl-new      { border-left-color: var(--red); }
   .message-card.sl-progress { border-left-color: var(--amber); }
-  .message-card.sl-done { border-left-color: var(--green); }
+  .message-card.sl-done     { border-left-color: var(--green); }
 
   .msg-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
   .msg-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+  /* Type badge — only border color, no dot */
   .msg-type-badge {
     display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; padding: 3px 9px;
+    border-radius: 6px; border: 1.5px solid;
   }
-  .msg-type-badge.taklif { background: var(--green-light); color: var(--green); }
-  .msg-type-badge.shikoyat { background: var(--red-light); color: var(--red); }
+  .msg-type-badge.taklif  { border-color: var(--green); color: var(--green); background: var(--green-light); }
+  .msg-type-badge.shikoyat { border-color: var(--red);   color: var(--red);   background: var(--red-light);  }
+
+  /* Status badge — border color only, no dot emoji */
   .msg-status-badge {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+    display: inline-flex; align-items: center;
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 6px; border: 1.5px solid;
   }
-  .msg-status-badge.s-new { background: var(--red-light); color: var(--red); }
-  .msg-status-badge.s-progress { background: var(--amber-light); color: var(--amber); }
-  .msg-status-badge.s-done { background: var(--green-light); color: var(--green); }
+  .msg-status-badge.s-new      { border-color: var(--red);   color: var(--red);   background: var(--red-light);   }
+  .msg-status-badge.s-progress { border-color: var(--amber); color: var(--amber); background: var(--amber-light); }
+  .msg-status-badge.s-done     { border-color: var(--green); color: var(--green); background: var(--green-light); }
 
   .msg-time { font-size: 11px; color: var(--gray-400); flex-shrink: 0; }
   .msg-filial { font-size: 12px; color: var(--orange); font-weight: 500; margin-bottom: 6px; }
@@ -301,17 +325,18 @@
   .msg-sender { font-size: 12px; color: var(--gray-400); }
   .msg-anon { font-size: 12px; color: var(--amber); font-weight: 500; }
 
-  /* STATUS BUTTONS inside card */
+  /* Status buttons inside card — border color only */
   .status-row { display: flex; gap: 5px; flex-wrap: wrap; }
   .status-btn {
-    padding: 4px 10px; border-radius: 20px;
+    padding: 5px 11px; border-radius: 6px;
     font-family: inherit; font-size: 11px; font-weight: 600;
     border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
-    cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all 0.15s;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation; transition: all 0.15s;
   }
-  .status-btn.cur-new { background: var(--red-light); border-color: var(--red); color: var(--red); }
-  .status-btn.cur-progress { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
-  .status-btn.cur-done { background: var(--green-light); border-color: var(--green); color: var(--green); }
+  .status-btn.cur-new      { border-color: var(--red);   background: var(--red-light);   color: var(--red);   }
+  .status-btn.cur-progress { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
+  .status-btn.cur-done     { border-color: var(--green); background: var(--green-light); color: var(--green); }
 
   .empty-state { text-align: center; padding: 60px 24px; color: var(--gray-400); }
   .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
@@ -322,8 +347,6 @@
     animation: spin 0.7s linear infinite; margin: 40px auto 12px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-
-  .sub-tabs-wrapper { position: relative; }
 </style>
 </head>
 <body>
@@ -376,7 +399,7 @@
     <div class="section-title">Maxfiylik</div>
     <div class="anonymous-row">
       <div class="anonymous-info">
-        <div class="anon-icon" style="font-size:20px">🕵️</div>
+        <div style="font-size:20px">🕵️</div>
         <div class="anon-text">
           <div class="title">Anonim yuborish</div>
           <div class="sub">Ismingiz ko'rinmaydi</div>
@@ -423,17 +446,15 @@
 
   <!-- SUB TABS + FILTER BTN -->
   <div class="sub-tabs-wrapper">
-    <div class="sub-tabs" id="sub-tabs-container">
-      <button class="sub-tab active-new" data-sub="new">🔴 Yangi <span class="sc" id="sc-new">0</span></button>
-      <button class="sub-tab" data-sub="progress">🟡 Jarayonda <span class="sc" id="sc-progress">0</span></button>
-      <button class="sub-tab" data-sub="done">🟢 Yakunlandi <span class="sc" id="sc-done">0</span></button>
+    <div class="sub-tabs" id="sub-tabs-scroll">
+      <button class="sub-tab active-new"  data-sub="new">Yangi <span class="sc" id="sc-new">0</span></button>
+      <button class="sub-tab" data-sub="progress">Ko'rib chiqilmoqda <span class="sc" id="sc-progress">0</span></button>
+      <button class="sub-tab" data-sub="done">Yakunlandi <span class="sc" id="sc-done">0</span></button>
     </div>
-    <!-- Filter button (only visible on "all" tab) -->
-    <button class="filter-icon-btn" id="filter-icon-btn" title="Filter">
+    <button class="filter-icon-btn" id="filter-icon-btn">
       ⚙️
       <span class="filter-dot"></span>
     </button>
-    <!-- Dropdown -->
     <div class="filter-dropdown" id="filter-dropdown">
       <div class="filter-dropdown-title">Ko'rinishi</div>
       <div class="filter-option" data-anon="all">
@@ -465,7 +486,7 @@ let isAnon = false;
 let allMessages = [];
 let currentMainTab = 'all';
 let currentSubTab = 'new';
-let currentAnonFilter = 'all'; // 'all' | 'anon' | 'open'
+let currentAnonFilter = 'all';
 
 const tg = window.Telegram?.WebApp || {};
 if (tg.ready) tg.ready();
@@ -485,25 +506,25 @@ function escapeHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function getStatus(m) { return m.status || 'new'; }
-function statusClass(s) {
-  if (s === 'done') return 'cur-done';
-  if (s === 'progress' || s === 'in_progress') return 'cur-progress';
-  return 'cur-new';
-}
-function statusLabel(s) {
-  if (s === 'done') return '🟢 Yakunlandi';
-  if (s === 'progress' || s === 'in_progress') return '🟡 Jarayonda';
-  return '🔴 Yangi';
-}
 function statusBadgeClass(s) {
   if (s === 'done') return 's-done';
   if (s === 'progress' || s === 'in_progress') return 's-progress';
   return 's-new';
 }
+function statusLabel(s) {
+  if (s === 'done') return 'Yakunlandi';
+  if (s === 'progress' || s === 'in_progress') return "Ko'rib chiqilmoqda";
+  return 'Yangi';
+}
 function slClass(s) {
   if (s === 'done') return 'sl-done';
   if (s === 'progress' || s === 'in_progress') return 'sl-progress';
   return 'sl-new';
+}
+function statusBtnClass(s) {
+  if (s === 'done') return 'cur-done';
+  if (s === 'progress' || s === 'in_progress') return 'cur-progress';
+  return 'cur-new';
 }
 
 // ===== EMPLOYEE FORM =====
@@ -562,8 +583,10 @@ async function submitForm() {
       })
     });
     var data = await res.json();
-    if (data.ok) { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); showScreen('success'); }
-    else throw new Error(data.error || 'Xatolik');
+    if (data.ok) {
+      if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      showScreen('success');
+    } else throw new Error(data.error || 'Xatolik');
   } catch (err) {
     alert('Xatolik: ' + err.message);
     btn.disabled = false; btn.innerHTML = '<span>📤</span><span>Yuborish</span>';
@@ -588,25 +611,18 @@ function getByMainTab(tab) {
   if (tab === 'shikoyat') return allMessages.filter(m => m.type === 'shikoyat');
   return allMessages;
 }
-
 function applyAnonFilter(msgs) {
   if (currentAnonFilter === 'anon') return msgs.filter(m => m.anon || m.isAnon);
   if (currentAnonFilter === 'open') return msgs.filter(m => !m.anon && !m.isAnon);
   return msgs;
 }
-
 function updateSubCounts(base) {
-  var newC = base.filter(m => getStatus(m) === 'new').length;
-  var progC = base.filter(m => getStatus(m) === 'progress' || getStatus(m) === 'in_progress').length;
-  var doneC = base.filter(m => getStatus(m) === 'done').length;
-  document.getElementById('sc-new').textContent = newC;
-  document.getElementById('sc-progress').textContent = progC;
-  document.getElementById('sc-done').textContent = doneC;
+  document.getElementById('sc-new').textContent = base.filter(m => getStatus(m) === 'new').length;
+  document.getElementById('sc-progress').textContent = base.filter(m => getStatus(m) === 'progress' || getStatus(m) === 'in_progress').length;
+  document.getElementById('sc-done').textContent = base.filter(m => getStatus(m) === 'done').length;
 }
-
 function getFinalMessages() {
   var base = getByMainTab(currentMainTab);
-  // anon filter only on "all" main tab
   if (currentMainTab === 'all') base = applyAnonFilter(base);
   updateSubCounts(base);
   if (currentSubTab === 'progress') return base.filter(m => getStatus(m) === 'progress' || getStatus(m) === 'in_progress');
@@ -622,10 +638,10 @@ function renderMessages(msgs) {
   }
   list.innerHTML = msgs.map(function(m) {
     var s = getStatus(m);
-    return '<div class="message-card ' + slClass(s) + '" data-id="' + escapeHtml(m.id) + '">' +
+    return '<div class="message-card ' + slClass(s) + '">' +
       '<div class="msg-header">' +
         '<div class="msg-meta">' +
-          '<span class="msg-type-badge ' + m.type + '">' + (m.type === 'taklif' ? '💡 TAKLIF' : '⚠️ SHIKOYAT') + '</span>' +
+          '<span class="msg-type-badge ' + m.type + '">' + (m.type === 'taklif' ? 'TAKLIF' : 'SHIKOYAT') + '</span>' +
           '<span class="msg-status-badge ' + statusBadgeClass(s) + '">' + statusLabel(s) + '</span>' +
         '</div>' +
         '<span class="msg-time">' + escapeHtml(m.time) + '</span>' +
@@ -639,9 +655,11 @@ function renderMessages(msgs) {
             : '<span class="msg-sender">👤 ' + escapeHtml(m.sender || '') + '</span>') +
         '</div>' +
         '<div class="status-row">' +
-          '<button class="status-btn ' + (s === 'new' ? 'cur-new' : '') + '" onclick="changeStatus(\'' + escapeHtml(m.id) + '\',\'new\',this)">🔴 Yangi</button>' +
-          '<button class="status-btn ' + ((s === 'progress' || s === 'in_progress') ? 'cur-progress' : '') + '" onclick="changeStatus(\'' + escapeHtml(m.id) + '\',\'progress\',this)">🟡 Jarayonda</button>' +
-          '<button class="status-btn ' + (s === 'done' ? 'cur-done' : '') + '" onclick="changeStatus(\'' + escapeHtml(m.id) + '\',\'done\',this)">🟢 Yakunlandi</button>' +
+          ['new','progress','done'].map(function(st) {
+            var labels = {new:'Yangi', progress:"Ko'rib chiqilmoqda", done:'Yakunlandi'};
+            var cls = (s === st || (s === 'in_progress' && st === 'progress')) ? statusBtnClass(st) : '';
+            return '<button class="status-btn ' + cls + '" onclick="changeStatus(\'' + escapeHtml(m.id) + '\',\'' + st + '\',this)">' + labels[st] + '</button>';
+          }).join('') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -649,14 +667,13 @@ function renderMessages(msgs) {
 }
 
 function refreshView() {
-  var msgs = getFinalMessages();
-  renderMessages(msgs);
+  renderMessages(getFinalMessages());
 }
 
 async function changeStatus(msgId, newStatus, clickedBtn) {
   var card = clickedBtn.closest('.message-card');
   var btns = card.querySelectorAll('.status-btn');
-  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+  btns.forEach(function(b) { b.disabled = true; b.style.opacity = '0.5'; });
   try {
     var res = await fetch(SERVER_URL + '/status', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -664,7 +681,7 @@ async function changeStatus(msgId, newStatus, clickedBtn) {
     });
     var data = await res.json();
     if (data.ok) {
-      var msg = allMessages.find(m => m.id === msgId);
+      var msg = allMessages.find(function(m) { return m.id === msgId; });
       if (msg) msg.status = newStatus;
       updateStats();
       refreshView();
@@ -672,7 +689,7 @@ async function changeStatus(msgId, newStatus, clickedBtn) {
     } else throw new Error(data.error);
   } catch (err) {
     alert('Xatolik: ' + err.message);
-    btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    btns.forEach(function(b) { b.disabled = false; b.style.opacity = '1'; });
   }
 }
 
@@ -690,23 +707,18 @@ async function loadAdminMessages() {
   }
 }
 
-// ===== ANON FILTER DROPDOWN =====
+// ===== ANON FILTER =====
 function setAnonFilter(val) {
   currentAnonFilter = val;
   ['all','open','anon'].forEach(function(k) {
     var el = document.getElementById('fc-' + k);
-    if (k === val) {
-      el.classList.add('checked'); el.textContent = '✓';
-    } else {
-      el.classList.remove('checked'); el.textContent = '';
-    }
+    if (k === val) { el.classList.add('checked'); el.textContent = '✓'; }
+    else { el.classList.remove('checked'); el.textContent = ''; }
   });
-  var btn = document.getElementById('filter-icon-btn');
-  btn.classList.toggle('has-filter', val !== 'all');
+  document.getElementById('filter-icon-btn').classList.toggle('has-filter', val !== 'all');
   closeFilterDropdown();
   refreshView();
 }
-
 function toggleFilterDropdown(e) {
   e.stopPropagation();
   document.getElementById('filter-dropdown').classList.toggle('open');
@@ -715,11 +727,11 @@ function closeFilterDropdown() {
   document.getElementById('filter-dropdown').classList.remove('open');
 }
 
-// ===== EVENT LISTENERS =====
+// ===== EVENTS =====
 document.addEventListener('DOMContentLoaded', function() {
   // Employee
-  document.getElementById('card-taklif').addEventListener('click', () => selectType('taklif'));
-  document.getElementById('card-shikoyat').addEventListener('click', () => selectType('shikoyat'));
+  document.getElementById('card-taklif').addEventListener('click', function() { selectType('taklif'); });
+  document.getElementById('card-shikoyat').addEventListener('click', function() { selectType('shikoyat'); });
   document.getElementById('anon-toggle').addEventListener('click', toggleAnon);
   document.getElementById('submit-btn').addEventListener('click', submitForm);
   document.getElementById('btn-new').addEventListener('click', resetForm);
@@ -737,14 +749,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Main tabs
   document.querySelectorAll('.main-tab').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.main-tab').forEach(function(b) { b.classList.remove('active'); });
       this.classList.add('active');
       currentMainTab = this.getAttribute('data-tab');
       currentSubTab = 'new';
-      // highlight sub tab
-      document.querySelectorAll('.sub-tab').forEach(b => b.className = 'sub-tab');
+      // reset sub tabs
+      document.querySelectorAll('.sub-tab').forEach(function(b) { b.className = 'sub-tab'; });
       document.querySelector('[data-sub="new"]').classList.add('active-new');
-      // show/hide filter btn
       document.getElementById('filter-icon-btn').style.display = currentMainTab === 'all' ? 'flex' : 'none';
       refreshView();
     });
@@ -753,7 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Sub tabs
   document.querySelectorAll('.sub-tab').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.querySelectorAll('.sub-tab').forEach(b => b.className = 'sub-tab');
+      document.querySelectorAll('.sub-tab').forEach(function(b) { b.className = 'sub-tab'; });
       currentSubTab = this.getAttribute('data-sub');
       var cls = currentSubTab === 'new' ? 'active-new' : currentSubTab === 'progress' ? 'active-progress' : 'active-done';
       this.classList.add(cls);
@@ -761,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Filter dropdown
+  // Filter
   document.getElementById('filter-icon-btn').addEventListener('click', toggleFilterDropdown);
   document.querySelectorAll('.filter-option').forEach(function(opt) {
     opt.addEventListener('click', function(e) {
