@@ -8,6 +8,7 @@ import logging
 import os
 import asyncio
 import threading
+import time as time_module
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
@@ -28,12 +29,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 flask_app = Flask(__name__)
-CORS(flask_app)
+
+# CORS — barcha domenlardan so'rov qabul qilish
+CORS(flask_app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
+
+@flask_app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
+
+@flask_app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@flask_app.route('/<path:path>', methods=['OPTIONS'])
+def options_handler(path):
+    return jsonify({"ok": True}), 200
 
 ptb_app = None
 loop = None
 
-# Xabarlarni faylda saqlash
 MESSAGES_FILE = '/app/messages.json'
 
 def load_messages():
@@ -50,6 +64,8 @@ def save_messages(msgs):
     except Exception as e:
         logger.error(f"Faylga yozishda xatolik: {e}")
 
+
+# ==================== BOT HANDLERS ====================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
@@ -89,14 +105,13 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     try:
         raw = update.message.web_app_data.data
         data = json.loads(raw)
-
         msg_type = data.get('type', '')
         filial = data.get('filial', '')
         text = data.get('text', '')
         anon = data.get('anon', False)
-        time = data.get('time', '')
-
+        time_str = data.get('time', '')
         sender_user = update.effective_user
+
         if anon:
             sender_text = "🕵️ <b>Anonim</b>"
             sender_name = "Anonim"
@@ -116,22 +131,17 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             f"━━━━━━━━━━━━━━━━━━\n"
             f"🏢 <b>Filial:</b> {filial}\n"
             f"{sender_text}\n"
-            f"📅 <b>Vaqt:</b> {time}\n"
+            f"📅 <b>Vaqt:</b> {time_str}\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"💬 <b>Matn:</b>\n{text}"
         )
 
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=message,
-            parse_mode="HTML"
-        )
+        await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=message, parse_mode="HTML")
         await update.message.reply_text("✅ Murojaatingiz yuborildi!\n\nRahmat, tez orada ko'rib chiqiladi.")
-        logger.info(f"Yangi {type_label}: {filial}")
 
     except Exception as e:
         logger.error(f"web_app_data xatolik: {e}")
-        await update.message.reply_text("❌ Xatolik yuz berdi. Qayta urinib ko'ring.")
+        await update.message.reply_text("❌ Xatolik yuz berdi.")
 
 
 # ==================== FLASK ROUTES ====================
@@ -149,25 +159,27 @@ def webhook():
     return jsonify({"ok": True})
 
 
-@flask_app.route("/send", methods=["POST"])
+@flask_app.route("/send", methods=["POST", "OPTIONS"])
 def send_message():
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True}), 200
     try:
         data = request.get_json(force=True)
 
-        msg_type = data.get('type', '')
-        filial = data.get('filial', '')
-        text = data.get('text', '')
-        anon = data.get('anon', False)
-        time = data.get('time', '')
+        msg_type    = data.get('type', '')
+        filial      = data.get('filial', '')
+        text        = data.get('text', '')
+        anon        = data.get('anon', False)
+        time_str    = data.get('time', '')
         sender_name = data.get('sender_name', "Noma'lum")
-        username = data.get('username', '')
+        username    = data.get('username', '')
 
         if anon:
-            sender_text = "🕵️ <b>Anonim</b>"
+            sender_text  = "🕵️ <b>Anonim</b>"
             display_name = "Anonim"
         else:
-            uname = f" @{username}" if username else ""
-            sender_text = f"👤 {sender_name}{uname}"
+            uname        = f" @{username}" if username else ""
+            sender_text  = f"👤 {sender_name}{uname}"
             display_name = sender_name + (f" @{username}" if username else "")
 
         type_emoji = "💡" if msg_type == "taklif" else "⚠️"
@@ -178,7 +190,7 @@ def send_message():
             f"━━━━━━━━━━━━━━━━━━\n"
             f"🏢 <b>Filial:</b> {filial}\n"
             f"{sender_text}\n"
-            f"📅 <b>Vaqt:</b> {time}\n"
+            f"📅 <b>Vaqt:</b> {time_str}\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"💬 <b>Matn:</b>\n{text}"
         )
@@ -193,21 +205,18 @@ def send_message():
         )
         future.result(timeout=10)
 
-        # Faylga saqlash
-        import time as time_module
         msg_id = str(int(time_module.time() * 1000))
         msgs = load_messages()
         msgs.insert(0, {
-            "id": msg_id,
-            "type": msg_type,
+            "id":     msg_id,
+            "type":   msg_type,
             "filial": filial,
-            "text": text,
-            "anon": anon,
-            "time": time,
+            "text":   text,
+            "anon":   anon,
+            "time":   time_str,
             "sender": display_name,
             "status": "new"
         })
-        # Faqat oxirgi 500 ta xabar
         if len(msgs) > 500:
             msgs = msgs[:500]
         save_messages(msgs)
@@ -220,18 +229,20 @@ def send_message():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@flask_app.route("/messages", methods=["GET"])
+@flask_app.route("/messages", methods=["GET", "OPTIONS"])
 def get_messages():
-    """Admin panel uchun xabarlar ro'yxati"""
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True}), 200
     return jsonify({"ok": True, "messages": load_messages()})
 
 
-@flask_app.route("/status", methods=["POST"])
+@flask_app.route("/status", methods=["POST", "OPTIONS"])
 def update_status():
-    """Xabar holatini yangilash"""
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True}), 200
     try:
-        data = request.get_json(force=True)
-        msg_id = data.get('id')
+        data       = request.get_json(force=True)
+        msg_id     = data.get('id')
         new_status = data.get('status')
 
         if not msg_id or not new_status:
@@ -240,7 +251,7 @@ def update_status():
         if new_status not in ["new", "progress", "in_progress", "done"]:
             return jsonify({"ok": False, "error": "Noto'g'ri status"}), 400
 
-        msgs = load_messages()
+        msgs    = load_messages()
         updated = False
         for msg in msgs:
             if msg.get('id') == msg_id:
