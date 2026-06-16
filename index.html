@@ -4,7 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Taklif & Shikoyat</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+<script src="https://telegram.org/js/telegram-web-app.js">
+  // onclick muammosini hal qilish
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('card-taklif').addEventListener('click', function() {
+    selectType('taklif');
+  });
+  document.getElementById('card-shikoyat').addEventListener('click', function() {
+    selectType('shikoyat');
+  });
+  document.getElementById('anon-toggle').addEventListener('click', function() {
+    toggleAnon();
+  });
+  document.getElementById('submit-btn').addEventListener('click', function() {
+    submitForm();
+  });
+});
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
