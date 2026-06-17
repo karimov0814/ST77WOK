@@ -20,8 +20,12 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 # =====================================================
 BOT_TOKEN      = "8919742379:AAG_mBtlsxU4DluKoeXUvCfn2mscdZ1pP1M"
-ADMIN_IDS      = [7780854728, 1488298476]
-ADMIN_CHAT_ID  = ADMIN_IDS[0]  # asosiy admin
+ADMINS = {
+    7780854728: "superadmin",
+    1488298476: "moderator",
+}
+ADMIN_IDS     = list(ADMINS.keys())
+ADMIN_CHAT_ID = ADMIN_IDS[0]
 MINI_APP_URL   = "https://karimov0814.github.io/feedback-bot/index.html"
 PORT           = int(os.environ.get("PORT", 5000))
 WEBHOOK_URL    = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
@@ -285,6 +289,13 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 @flask_app.route("/", methods=["GET"])
 def index():
     return "Bot ishlayapti! ✅", 200
+
+@flask_app.route("/role/<int:telegram_id>", methods=["GET"])
+def get_role(telegram_id):
+    role = ADMINS.get(telegram_id)
+    if role:
+        return jsonify({"ok": True, "role": role, "is_admin": True})
+    return jsonify({"ok": True, "role": "user", "is_admin": False})
 
 @flask_app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
