@@ -473,15 +473,16 @@ function parseMessageDate(m) {
   if (!m.time) return null;
   var d = new Date(m.time);
   if (!isNaN(d)) return d;
+  // uz-UZ format: 25.05.2025, 10:32
   var match = String(m.time).match(/(\d{2})\.(\d{2})\.(\d{4})/);
-  if (match) return new Date(match[3]+'-'+match[2]+'-'+match[1]);
+  if (match) return new Date(match[3] + '-' + match[2] + '-' + match[1]);
   return null;
 }
 function filterByDate(msgs) {
   if (!dateFrom && !dateTo) return msgs;
   return msgs.filter(function(m) {
     var d = parseMessageDate(m);
-    if (!d) return false;
+    if (!d) return true;
     if (dateFrom && d < dateFrom) return false;
     if (dateTo && d > dateTo) return false;
     return true;
