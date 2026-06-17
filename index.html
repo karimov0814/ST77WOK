@@ -89,6 +89,7 @@
   .admin-header-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px; }
   .admin-header h1 { font-size:20px;font-weight:700; }
   .admin-badge { background:var(--orange);color:white;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px; }
+  .admin-badge.mod { background:var(--blue); }
 
   /* DATE FILTER ROW */
   .date-filter-row { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px; }
@@ -256,7 +257,7 @@
   <div class="admin-header">
     <div class="admin-header-top">
       <h1>📊 Admin Panel</h1>
-      <div class="admin-badge">ADMIN</div>
+      <div class="admin-badge" id="admin-role-badge">ADMIN</div>
     </div>
 
     <!-- DATE FILTER -->
@@ -333,18 +334,21 @@
 
 <script>
 const SERVER_URL = 'https://web-production-dd6e7.up.railway.app';
-const ADMIN_CHAT_ID = 7780854728;
 
 var selectedType = '', isAnon = false, allMessages = [];
 var currentMainTab = 'all', currentSubTab = 'new', currentAnonFilter = 'all';
 var dateFrom = null, dateTo = null;
+var isAdmin = false;
+var canDelete = false; // faqat superadmin true bo'ladi
+var userRole = 'user';
 
 var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : {};
 if (tg.ready) tg.ready();
 if (tg.expand) tg.expand();
 
 var urlParams = new URLSearchParams(window.location.search);
-var isAdmin = urlParams.get('admin') === '1' || ((tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0) === ADMIN_CHAT_ID);
+var urlAdminFlag = urlParams.get('admin') === '1';
+var currentUserId = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : 0;
 
 // UTILS
 function showScreen(name) {
@@ -474,7 +478,6 @@ function parseMessageDate(m) {
   if (!m.time) return null;
   var d = new Date(m.time);
   if (!isNaN(d)) return d;
-  // uz-UZ format: 25.05.2025, 10:32
   var match = String(m.time).match(/(\d{2})\.(\d{2})\.(\d{4})/);
   if (match) return new Date(match[3] + '-' + match[2] + '-' + match[1]);
   return null;
@@ -528,7 +531,8 @@ function renderMessages(msgs) {
   if (!msgs.length) { list.innerHTML='<div class="empty-state"><div class="emoji">📭</div><p>Murojaatlar yo\'q</p></div>'; return; }
   list.innerHTML = msgs.map(function(m) {
     var s = getStatus(m);
-    var deleteBtnHtml = s==='done'
+    // Delete tugmasi FAQAT: status === done VA canDelete === true (ya'ni superadmin)
+    var deleteBtnHtml = (s==='done' && canDelete)
       ? '<button class="delete-btn" onclick="deleteMessage(\''+escapeHtml(m.id)+'\',this)" title="O\'chirish"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h10M6 4V3h4v1M5 4v8h6V4H5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
       : '';
     return '<div class="message-card '+slClass(s)+'">'+
@@ -570,6 +574,7 @@ async function changeStatus(msgId, newStatus, clickedBtn) {
   }
 }
 async function deleteMessage(msgId, btn) {
+  if (!canDelete) return; // qo'shimcha xavfsizlik — moderator hech qachon shu yerga kelmaydi
   if (!confirm("Bu murojaatni o'chirib tashlaysizmi?")) return;
   btn.disabled=true; btn.style.opacity='0.5';
   try {
@@ -612,9 +617,50 @@ function setAnonFilter(val) {
 function toggleFilterDropdown(e) { e.stopPropagation(); document.getElementById('filter-dropdown').classList.toggle('open'); }
 function closeFilterDropdown() { document.getElementById('filter-dropdown').classList.remove('open'); }
 
+// ===== ROLE CHECK (superadmin / moderator / user) =====
+async function checkRoleAndInit() {
+  // Agar URL orqali ?admin=1 berilgan bo'lsa ham, role serverdan tekshiriladi
+  if (!currentUserId && !urlAdminFlag) {
+    showScreen('employee');
+    return;
+  }
+  try {
+    var res = await fetch(SERVER_URL + '/role/' + (currentUserId || 0));
+    var data = await res.json();
+    if (data.ok && data.is_admin) {
+      userRole = data.role; // "superadmin" yoki "moderator"
+      isAdmin = true;
+      canDelete = (userRole === 'superadmin');
+      var badge = document.getElementById('admin-role-badge');
+      if (userRole === 'moderator') {
+        badge.textContent = 'MODERATOR';
+        badge.classList.add('mod');
+      } else {
+        badge.textContent = 'ADMIN';
+      }
+      showScreen('admin');
+      loadAdminMessages();
+    } else if (urlAdminFlag) {
+      // fallback: agar /role ishlamasa-yu URL admin=1 bo'lsa, ehtiyot bilan oddiy admin sifatida (delete YO'Q)
+      isAdmin = true; canDelete = false;
+      showScreen('admin');
+      loadAdminMessages();
+    } else {
+      showScreen('employee');
+    }
+  } catch (err) {
+    if (urlAdminFlag) {
+      isAdmin = true; canDelete = false;
+      showScreen('admin');
+      loadAdminMessages();
+    } else {
+      showScreen('employee');
+    }
+  }
+}
+
 // EVENTS
 document.addEventListener('DOMContentLoaded', function() {
-  // Employee
   document.getElementById('card-taklif').addEventListener('click', function(){selectType('taklif');});
   document.getElementById('card-shikoyat').addEventListener('click', function(){selectType('shikoyat');});
   document.getElementById('anon-toggle').addEventListener('click', toggleAnon);
@@ -687,9 +733,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.addEventListener('click', closeFilterDropdown);
 
-  // Init
-  if (isAdmin) { showScreen('admin'); loadAdminMessages(); }
-  else { showScreen('employee'); }
+  // Init — role serverdan tekshiriladi
+  checkRoleAndInit();
 });
 </script>
 </body>
