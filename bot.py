@@ -20,7 +20,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 # =====================================================
 BOT_TOKEN      = "8919742379:AAG_mBtlsxU4DluKoeXUvCfn2mscdZ1pP1M"
-ADMIN_CHAT_ID  = 7780854728
+ADMIN_IDS      = [7780854728, 1488298476]
+ADMIN_CHAT_ID  = ADMIN_IDS[0]  # asosiy admin
 MINI_APP_URL   = "https://karimov0814.github.io/feedback-bot/index.html"
 PORT           = int(os.environ.get("PORT", 5000))
 WEBHOOK_URL    = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
@@ -211,7 +212,7 @@ def update_status_db(msg_id, new_status):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     chat_id = update.effective_chat.id
-    is_admin = (chat_id == ADMIN_CHAT_ID)
+    is_admin = (chat_id in ADMIN_IDS)
 
     if is_admin:
         keyboard = InlineKeyboardMarkup([[
@@ -270,7 +271,8 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             f"💬 <b>Matn:</b>\n{text}"
         )
 
-        await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=message, parse_mode="HTML")
+        for _aid in ADMIN_IDS:
+            await context.bot.send_message(chat_id=_aid, text=message, parse_mode="HTML")
         await update.message.reply_text("✅ Murojaatingiz yuborildi!\n\nRahmat, tez orada ko'rib chiqiladi.")
 
     except Exception as e:
@@ -331,11 +333,12 @@ def send_message():
             f"💬 <b>Matn:</b>\n{text}"
         )
 
-        future = asyncio.run_coroutine_threadsafe(
-            ptb_app.bot.send_message(chat_id=ADMIN_CHAT_ID, text=tg_message, parse_mode="HTML"),
-            loop
-        )
-        future.result(timeout=10)
+        for _aid in ADMIN_IDS:
+            future = asyncio.run_coroutine_threadsafe(
+                ptb_app.bot.send_message(chat_id=_aid, text=tg_message, parse_mode="HTML"),
+                loop
+            )
+            future.result(timeout=10)
 
         msg_id = str(int(time_module.time() * 1000))
 
