@@ -306,13 +306,17 @@ def send_message():
         sender_name = data.get('sender_name', "Noma'lum")
         username    = data.get('username', '')
 
+        # To'liq ism — Sheets va Telegram uchun
+        uname     = f" @{username}" if username else ""
+        real_name = sender_name + uname
+
+        # Mini app uchun — anonim bo'lsa yashiriladi
         if anon:
             sender_text  = "🕵️ <b>Anonim</b>"
             display_name = "Anonim"
         else:
-            uname        = f" @{username}" if username else ""
-            sender_text  = f"👤 {sender_name}{uname}"
-            display_name = sender_name + (f" @{username}" if username else "")
+            sender_text  = f"👤 {real_name}"
+            display_name = real_name
 
         type_emoji = "💡" if msg_type == "taklif" else "⚠️"
         type_label = "TAKLIF" if msg_type == "taklif" else "SHIKOYAT"
@@ -334,6 +338,8 @@ def send_message():
         future.result(timeout=10)
 
         msg_id = str(int(time_module.time() * 1000))
+
+        # Supabase ga — mini app uchun (anonim bo'lsa "Anonim" ko'rinadi)
         msg = {
             "id":     msg_id,
             "type":   msg_type,
@@ -344,12 +350,20 @@ def send_message():
             "sender": display_name,
             "status": "new"
         }
-
-        # Supabase ga saqlash
         save_message(msg)
 
-        # Google Sheets ga yozish (alohida thread da)
-        threading.Thread(target=append_to_sheet, args=(msg,), daemon=True).start()
+        # Google Sheets ga — har doim to'liq ma'lumot
+        sheet_msg = {
+            "id":     msg_id,
+            "type":   msg_type,
+            "filial": filial,
+            "text":   text,
+            "anon":   anon,
+            "time":   time_str,
+            "sender": real_name,  # anonim bo'lsa ham to'liq ism
+            "status": "new"
+        }
+        threading.Thread(target=append_to_sheet, args=(sheet_msg,), daemon=True).start()
 
         logger.info(f"Yangi {type_label}: {filial} — {'anonim' if anon else sender_name}")
         return jsonify({"ok": True})
