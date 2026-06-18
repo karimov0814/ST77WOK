@@ -99,11 +99,9 @@ def get_sheet():
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID).sheet1
 
-        # Header qatori tekshiruvi / yangilash
         if sheet.row_count == 0 or sheet.cell(1, 1).value != "ID":
             sheet.insert_row(SHEET_HEADERS, index=1)
         elif sheet.cell(1, 4).value != "Matn (UZ) / Текст (UZ)":
-            # Eski header — yangi formatga yangilaymiz
             sheet.update('A1', [SHEET_HEADERS])
 
         return sheet
@@ -112,13 +110,6 @@ def get_sheet():
         return None
 
 def append_to_sheet(msg):
-    """
-    Google Sheets ga ikki tilli yozuv:
-    - Tur / Тип: UZ va RU
-    - Matn: alohida ustunlarda (UZ va RU)
-    - Anonim: UZ va RU
-    - Status: UZ va RU
-    """
     try:
         sheet = get_sheet()
         if not sheet:
@@ -128,19 +119,14 @@ def append_to_sheet(msg):
         lang = msg.get("lang", "uz")
         is_anon = msg.get("anon", False)
 
-        # Tur — ikki tilda
         if msg_type == "taklif":
             type_label = "Taklif / Предложение"
         else:
             type_label = "Shikoyat / Жалоба"
 
-        # Anonim — ikki tilda
         anon_label = "Ha / Да" if is_anon else "Yo'q / Нет"
-
-        # Til qaysi
         lang_label = "O'zbek" if lang == "uz" else "Русский"
 
-        # Status
         status_raw = msg.get("status", "new")
         if status_raw == "new":
             status_label = "Yangi / Новое"
@@ -153,8 +139,8 @@ def append_to_sheet(msg):
             msg.get("id", ""),
             type_label,
             msg.get("filial", ""),
-            msg.get("text_uz") or msg.get("text", ""),    # UZ ustun
-            msg.get("text_ru") or msg.get("text", ""),    # RU ustun
+            msg.get("text_uz") or msg.get("text", ""),
+            msg.get("text_ru") or msg.get("text", ""),
             msg.get("sender", ""),
             anon_label,
             lang_label,
@@ -172,15 +158,10 @@ def get_conn():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 def init_db():
-    """
-    Jadval yaratish / yangilash.
-    Eski jadval bo'lsa, text_uz, text_ru, lang ustunlarini qo'shamiz.
-    """
     try:
         conn = get_conn()
         cur = conn.cursor()
 
-        # Asosiy jadval
         cur.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id TEXT PRIMARY KEY,
@@ -198,7 +179,6 @@ def init_db():
             )
         """)
 
-        # Eski jadvalga yangi ustunlarni qo'shish (migration)
         for col, col_type, default in [
             ("text_uz", "TEXT", "''"),
             ("text_ru", "TEXT", "''"),
@@ -316,48 +296,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
 
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Eski (sendData) yo'l — endi asosiy oqim /send orqali ketadi, lekin fallback sifatida qoldiramiz."""
     try:
         raw = update.message.web_app_data.data
         data = json.loads(raw)
-        msg_type   = data.get('type', '')
-        filial     = data.get('filial', '')
-        text       = data.get('text', '')
-        text_uz    = data.get('text_uz', text)
-        text_ru    = data.get('text_ru', text)
-        lang       = data.get('lang', 'uz')
-        anon       = data.get('anon', False)
-        time_str   = data.get('time', '')
-        sender_user = update.effective_user
+        msg_type = data.get('type', '')
+        filial   = data.get('filial', '')
 
-        if anon:
-            sender_text = "🕵️ <b>Anonim</b>"
-            sender_name = "Anonim"
-        else:
-            name = sender_user.first_name
-            if sender_user.last_name:
-                name += ' ' + sender_user.last_name
-            username = f" @{sender_user.username}" if sender_user.username else ""
-            sender_text = f"👤 {name}{username}"
-            sender_name = name + (f" @{sender_user.username}" if sender_user.username else "")
+        type_label_uz = "SHIKOYAT" if msg_type == "shikoyat" else "TAKLIF"
+        emoji = "⚠️" if msg_type == "shikoyat" else "💡"
+        notif = f"{emoji} Yangi {type_label_uz} — {filial} filialidan"
 
-        # Telegram xabari: ikki tilda
-        type_uz = "💡 TAKLIF" if msg_type == "taklif" else "⚠️ SHIKOYAT"
-        type_ru = "💡 ПРЕДЛОЖЕНИЕ" if msg_type == "taklif" else "⚠️ ЖАЛОБА"
-
-        message = (
-            f"{type_uz} / {type_ru}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"🏢 {filial}\n"
-            f"{sender_text}\n"
-            f"📅 {time_str}\n"
-            f"🌐 {'O\'zbek' if lang == 'uz' else 'Русский'}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"🇺🇿 {text_uz}\n\n"
-            f"🇷🇺 {text_ru}"
-        )
+        admin_panel_kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📊 Admin Panel", web_app=WebAppInfo(url=MINI_APP_URL + "?admin=1"))
+        ]])
 
         for _aid in ADMIN_IDS:
-            await context.bot.send_message(chat_id=_aid, text=message, parse_mode="HTML")
+            await context.bot.send_message(chat_id=_aid, text=notif, reply_markup=admin_panel_kb)
         await update.message.reply_text("✅ Murojaatingiz yuborildi! / Ваше обращение отправлено!\n\nRahmat / Спасибо!")
 
     except Exception as e:
@@ -395,9 +350,9 @@ def send_message():
         msg_type    = data.get('type', '')
         filial      = data.get('filial', '')
         text        = data.get('text', '')
-        text_uz     = data.get('text_uz', text)   # frontend tarjima qilib yuboradi
-        text_ru     = data.get('text_ru', text)   # frontend tarjima qilib yuboradi
-        lang        = data.get('lang', 'uz')       # yuboruvchi tanlagan til
+        text_uz     = data.get('text_uz', text)
+        text_ru     = data.get('text_ru', text)
+        lang        = data.get('lang', 'uz')
         anon        = data.get('anon', False)
         time_str    = data.get('time', '')
         sender_name = data.get('sender_name', "Noma'lum / Неизвестно")
@@ -407,38 +362,30 @@ def send_message():
         real_name = sender_name + uname
 
         if anon:
-            sender_text  = "🕵️ <b>Anonim / Анонимно</b>"
             display_name = "Anonim"
         else:
-            sender_text  = f"👤 {real_name}"
             display_name = real_name
 
-        type_uz = "💡 TAKLIF" if msg_type == "taklif" else "⚠️ SHIKOYAT"
-        type_ru = "💡 ПРЕДЛОЖЕНИЕ" if msg_type == "taklif" else "⚠️ ЖАЛОБА"
+        # ===== QISQA BILDIRISHNOMA (Telegram chatga shu boriladi) =====
+        # Format: "⚠️ Yangi SHIKOYAT — Anhor filialidan"
+        type_label_uz = "SHIKOYAT" if msg_type == "shikoyat" else "TAKLIF"
+        emoji = "⚠️" if msg_type == "shikoyat" else "💡"
+        notif_text = f"{emoji} Yangi {type_label_uz} — {filial} filialidan"
 
-        # Telegram notification: ikki tilda matn bilan
-        tg_message = (
-            f"{type_uz} / {type_ru}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"🏢 <b>Filial / Филиал:</b> {filial}\n"
-            f"{sender_text}\n"
-            f"📅 <b>Vaqt / Время:</b> {time_str}\n"
-            f"🌐 <b>Til / Язык:</b> {'O\'zbek' if lang == 'uz' else 'Русский'}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"🇺🇿 <b>UZ:</b> {text_uz}\n\n"
-            f"🇷🇺 <b>RU:</b> {text_ru}"
-        )
+        admin_panel_kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📊 Admin Panel", web_app=WebAppInfo(url=MINI_APP_URL + "?admin=1"))
+        ]])
 
         for _aid in ADMIN_IDS:
             future = asyncio.run_coroutine_threadsafe(
-                ptb_app.bot.send_message(chat_id=_aid, text=tg_message, parse_mode="HTML"),
+                ptb_app.bot.send_message(chat_id=_aid, text=notif_text, reply_markup=admin_panel_kb),
                 loop
             )
             future.result(timeout=10)
 
         msg_id = str(int(time_module.time() * 1000))
 
-        # DB ga saqlash (mini app uchun — anonim bo'lsa "Anonim" ko'rinadi)
+        # To'liq ma'lumot — faqat DB ga (Mini App buni o'qiydi)
         msg = {
             "id":      msg_id,
             "type":    msg_type,
@@ -465,7 +412,7 @@ def send_message():
             "lang":    lang,
             "anon":    anon,
             "time":    time_str,
-            "sender":  real_name,   # har doim to'liq ism
+            "sender":  real_name,
             "status":  "new"
         }
         threading.Thread(target=append_to_sheet, args=(sheet_msg,), daemon=True).start()
