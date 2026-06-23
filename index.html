@@ -286,6 +286,49 @@
     border-top-color: var(--orange); border-radius: 50%;
     animation: spin 0.7s linear infinite; margin: 0 auto 12px;
   }
+
+  /* ===== MENING MUROJAATLARIM ===== */
+  .my-requests-bar {
+    display:flex;align-items:center;justify-content:space-between;background:white;
+    border-radius:var(--radius);padding:14px 16px;margin:16px;box-shadow:var(--shadow-sm);
+    border:1px solid var(--gray-200);cursor:pointer;-webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+  }
+  .my-requests-bar .mrb-left { display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--gray-800); }
+  .my-requests-bar .mrb-right { display:flex;align-items:center;gap:8px; }
+  .my-badge {
+    background:var(--red);color:white;font-size:11px;font-weight:700;min-width:20px;height:20px;
+    border-radius:10px;display:none;align-items:center;justify-content:center;padding:0 6px;
+  }
+  .chevron { color:var(--gray-400);font-size:18px; }
+  .back-btn {
+    width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);
+    color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    -webkit-tap-highlight-color:transparent;flex-shrink:0;
+  }
+  .my-unread-dot {
+    background:var(--red);color:white;font-size:11px;font-weight:700;min-width:20px;height:20px;
+    border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;
+  }
+  .reply-thread { margin-top:10px;border-top:1px dashed var(--gray-200);padding-top:10px;display:flex;flex-direction:column;gap:8px; }
+  .reply-bubble { background:var(--blue-light);border-radius:10px;padding:8px 12px; }
+  .reply-meta { font-size:11px;font-weight:700;color:var(--blue);margin-bottom:3px; }
+  .reply-text { font-size:13px;color:var(--gray-800);line-height:1.5;white-space:pre-wrap; }
+  .no-reply { margin-top:10px;font-size:12px;color:var(--gray-400);font-style:italic; }
+  .reply-btn {
+    padding:5px 11px;border-radius:6px;font-family:inherit;font-size:11px;font-weight:600;
+    border:1.5px solid var(--blue);background:var(--blue-light);color:var(--blue);cursor:pointer;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  }
+  .reply-count-badge {
+    font-size:10px;color:var(--blue);font-weight:600;background:var(--blue-light);
+    border-radius:6px;padding:2px 7px;margin-left:6px;
+  }
+  #reply-textarea {
+    width:100%;padding:12px;border:1.5px solid var(--gray-200);border-radius:8px;
+    font-family:inherit;font-size:14px;resize:none;outline:none;margin-bottom:8px;
+  }
+  #reply-textarea:focus { border-color:var(--blue); }
 </style>
 </head>
 <body>
@@ -324,6 +367,13 @@
     <div class="header-top"><div class="header-icon">💬</div><h1 id="h-title">Taklif & Shikoyat</h1></div>
     <p id="h-sub">Xodimlar uchun muloqot platformasi</p>
     <div class="lang-switch-pill" onclick="switchLang()" id="lang-switch-pill">RU</div>
+  </div>
+  <div class="my-requests-bar" id="my-requests-bar" onclick="openMyRequests()">
+    <div class="mrb-left">📂 <span id="my-requests-label">Mening murojaatlarim</span></div>
+    <div class="mrb-right">
+      <span class="my-badge" id="my-badge">0</span>
+      <span class="chevron">›</span>
+    </div>
   </div>
   <div style="padding-bottom:32px;">
     <div class="section-title" id="st-type">Murojaat turini tanlang</div>
@@ -370,6 +420,17 @@
   <div class="success-desc" id="succ-desc">Murojaatingiz mas'ul shaxsga yetkazildi. Rahmat!</div>
   <div class="success-badge">🔒 <span id="succ-badge">Maxfiylik kafolatlangan</span></div>
   <button class="btn-new" id="btn-new">Yangi murojaat</button>
+</div>
+
+<!-- MENING MUROJAATLARIM -->
+<div id="screen-my" class="screen">
+  <div class="header" style="background:var(--gray-900);">
+    <div class="header-top">
+      <button class="back-btn" id="my-back-btn" onclick="showScreen('employee')">←</button>
+      <h1 id="my-title">Mening murojaatlarim</h1>
+    </div>
+  </div>
+  <div class="messages-list" id="my-messages-list"><div class="spinner"></div></div>
 </div>
 
 <!-- ADMIN -->
@@ -419,6 +480,19 @@
         <button class="date-reset-btn" id="date-reset-btn">Tozalash</button>
         <button class="date-apply-btn" id="date-apply-btn">Filtrlash</button>
       </div>
+    </div>
+  </div>
+
+  <!-- REPLY MODAL -->
+  <div class="date-modal-overlay" id="reply-modal-overlay">
+    <div class="date-modal">
+      <div class="date-modal-header">
+        <span class="date-modal-title" id="reply-modal-title">Javob yozish</span>
+        <button class="date-modal-close" id="reply-modal-close">✕</button>
+      </div>
+      <textarea id="reply-textarea" rows="4" placeholder="Javobingizni yozing..."></textarea>
+      <div class="field-error" id="err-reply-empty" style="padding:0;margin-bottom:10px;">Javob matnini kiriting</div>
+      <button class="date-apply-btn" id="reply-send-btn" style="width:100%;">Yuborish</button>
     </div>
   </div>
 
@@ -544,6 +618,17 @@ var LANG = {
     confirm_delete: "Bu murojaatni o'chirib tashlaysizmi?",
     // Error
     err_send: "Xatolik: ",
+    // Mening murojaatlarim
+    my_requests_label: "Mening murojaatlarim",
+    my_title: "Mening murojaatlarim",
+    my_empty: "Sizda hali murojaat yo'q",
+    no_reply_yet: "Hali javob yo'q",
+    // Admin reply
+    btn_reply: "✍️ Javob yozish",
+    reply_modal_title: "Javob yozish",
+    reply_placeholder: "Javobingizni yozing...",
+    reply_send: "Yuborish",
+    err_reply_empty: "Javob matnini kiriting",
   },
   ru: {
     lang_continue: 'Продолжить',
@@ -616,6 +701,17 @@ var LANG = {
     admin_lang_pill: 'UZ',
     confirm_delete: "Удалить это обращение?",
     err_send: "Ошибка: ",
+    // Мои обращения
+    my_requests_label: "Мои обращения",
+    my_title: "Мои обращения",
+    my_empty: "У вас пока нет обращений",
+    no_reply_yet: "Ответов еще нет",
+    // Admin reply
+    btn_reply: "✍️ Написать ответ",
+    reply_modal_title: "Написать ответ",
+    reply_placeholder: "Напишите ваш ответ...",
+    reply_send: "Отправить",
+    err_reply_empty: "Введите текст ответа",
   }
 };
 
@@ -630,6 +726,9 @@ var dateFrom = null, dateTo = null;
 var isAdmin = false, canDelete = false, userRole = 'user';
 // Translation cache: { msgId: { uz: '...', ru: '...' } }
 var translationCache = {};
+// Mening murojaatlarim
+var myMessages = [], myUnreadTotal = 0;
+var currentReplyMsgId = null;
 
 var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : {};
 if (tg.ready) tg.ready();
@@ -637,6 +736,7 @@ if (tg.expand) tg.expand();
 
 var urlParams = new URLSearchParams(window.location.search);
 var urlAdminFlag = urlParams.get('admin') === '1';
+var urlViewMy = urlParams.get('view') === 'my';
 var currentUserId = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : 0;
 
 // ===================================================
@@ -667,6 +767,7 @@ function switchLang() {
   localStorage.setItem('app_lang', currentLang);
   applyLangToUI();
   refreshView();
+  if (myMessages && myMessages.length) renderMyMessages();
 }
 
 function applyLangToUI() {
@@ -703,6 +804,16 @@ function applyLangToUI() {
   document.getElementById('succ-desc').textContent = T.succ_desc;
   document.getElementById('succ-badge').textContent = T.succ_badge;
   document.getElementById('btn-new').textContent = T.btn_new;
+
+  // Mening murojaatlarim
+  document.getElementById('my-requests-label').textContent = T.my_requests_label;
+  document.getElementById('my-title').textContent = T.my_title;
+
+  // Reply modal
+  document.getElementById('reply-modal-title').textContent = T.reply_modal_title;
+  document.getElementById('reply-textarea').placeholder = T.reply_placeholder;
+  document.getElementById('reply-send-btn').textContent = T.reply_send;
+  document.getElementById('err-reply-empty').textContent = T.err_reply_empty;
 
   // Admin header
   document.getElementById('admin-title').textContent = T.admin_title;
@@ -880,7 +991,8 @@ async function submitForm() {
         anon: isAnon,
         time: new Date().toLocaleString('uz-UZ',{timeZone:'Asia/Tashkent'}),
         sender_name: senderName,
-        username: user && user.username ? user.username : ''
+        username: user && user.username ? user.username : '',
+        user_id: currentUserId || null
       })
     });
     var data = await res.json();
@@ -1029,11 +1141,14 @@ function renderMessages(msgs) {
     var deleteBtnHtml = (s==='done' && canDelete)
       ? '<button class="delete-btn" onclick="deleteMessage(\''+escapeHtml(m.id)+'\',this)" title="'+t('confirm_delete')+'"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h10M6 4V3h4v1M5 4v8h6V4H5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
       : '';
+    var replyCountHtml = (m.reply_count > 0) ? '<span class="reply-count-badge">💬 '+m.reply_count+'</span>' : '';
+    var replyBtnHtml = '<button class="reply-btn" onclick="openReplyModal(\''+escapeHtml(m.id)+'\')">'+t('btn_reply')+'</button>';
 
     return '<div class="message-card '+slClass(s)+'">'+
       '<div class="msg-header"><div class="msg-meta">'+
         '<span class="msg-type-badge '+m.type+'">'+typeLabel+'</span>'+
         '<span class="msg-status-badge '+statusBadgeClass(s)+'">'+statusLabel(s)+'</span>'+
+        replyCountHtml+
       '</div><span class="msg-time">'+escapeHtml(m.time)+'</span></div>'+
       (m.filial?'<div class="msg-filial">'+t('filial_lbl')+escapeHtml(m.filial)+'</div>':'')+
       translatedBadgeHtml+
@@ -1041,7 +1156,7 @@ function renderMessages(msgs) {
       originalTextHtml+
       '<div class="msg-footer"><div>'+
         ((m.anon||m.isAnon)?'<span class="msg-anon">'+t('anon_lbl')+'</span>':'<span class="msg-sender">'+t('sender_lbl')+escapeHtml(m.sender||'')+'</span>')+
-      '</div><div class="msg-footer-right"><div class="status-row">'+
+      '</div><div class="msg-footer-right">'+replyBtnHtml+'<div class="status-row">'+
         ['new','progress','done'].map(function(st){
           var cls=(s===st||(s==='in_progress'&&st==='progress'))?statusBtnClass(st):'';
           var stLbls = {new:t('sbtn_new'),progress:t('sbtn_progress'),done:t('sbtn_done')};
@@ -1116,6 +1231,121 @@ async function loadAdminMessages() {
 }
 
 // ===================================================
+// MENING MUROJAATLARIM (xodim uchun)
+// ===================================================
+async function loadMyMessages(silent) {
+  if (!currentUserId) return;
+  if (!silent) document.getElementById('my-messages-list').innerHTML = '<div class="spinner"></div>';
+  try {
+    var res = await fetch(SERVER_URL + '/my-messages/' + currentUserId);
+    var data = await res.json();
+    myMessages = (data.ok && data.messages) ? data.messages : [];
+    myUnreadTotal = myMessages.reduce(function(sum, m){ return sum + (m.unread_count || 0); }, 0);
+    updateMyBadge();
+    if (document.getElementById('screen-my').classList.contains('active')) renderMyMessages();
+  } catch (err) {
+    if (!silent) document.getElementById('my-messages-list').innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><p>'+t('server_err')+'</p></div>';
+  }
+}
+
+function updateMyBadge() {
+  var b = document.getElementById('my-badge');
+  if (myUnreadTotal > 0) { b.style.display = 'inline-flex'; b.textContent = myUnreadTotal; }
+  else { b.style.display = 'none'; }
+}
+
+function openMyRequests() {
+  showScreen('my');
+  loadMyMessages();
+}
+
+function renderMyMessages() {
+  var list = document.getElementById('my-messages-list');
+  if (!myMessages.length) {
+    list.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><p>'+t('my_empty')+'</p></div>';
+    return;
+  }
+  list.innerHTML = myMessages.map(function(m) {
+    var s = getStatus(m);
+    var typeLabel = m.type === 'taklif' ? t('type_taklif') : t('type_shikoyat');
+    var unread = m.unread_count || 0;
+    var displayText = getDisplayText(m).text;
+    var repliesHtml;
+    if (m.replies && m.replies.length) {
+      repliesHtml = '<div class="reply-thread">' + m.replies.map(function(r) {
+        return '<div class="reply-bubble"><div class="reply-meta">👮 '+escapeHtml(r.admin_name||'Admin')+'</div><div class="reply-text">'+escapeHtml(r.text)+'</div></div>';
+      }).join('') + '</div>';
+    } else {
+      repliesHtml = '<div class="no-reply">'+t('no_reply_yet')+'</div>';
+    }
+    return '<div class="message-card '+slClass(s)+'" onclick="openMyDetail(\''+escapeHtml(m.id)+'\')">'+
+      '<div class="msg-header"><div class="msg-meta">'+
+        '<span class="msg-type-badge '+m.type+'">'+typeLabel+'</span>'+
+        '<span class="msg-status-badge '+statusBadgeClass(s)+'">'+statusLabel(s)+'</span>'+
+      '</div>'+(unread>0?'<span class="my-unread-dot">'+unread+'</span>':'<span class="msg-time">'+escapeHtml(m.time)+'</span>')+'</div>'+
+      (m.filial?'<div class="msg-filial">'+t('filial_lbl')+escapeHtml(m.filial)+'</div>':'')+
+      '<div class="msg-text">'+escapeHtml(displayText)+'</div>'+
+      repliesHtml+
+    '</div>';
+  }).join('');
+}
+
+function openMyDetail(id) {
+  var m = myMessages.find(function(x){ return x.id === id; });
+  if (!m || !(m.unread_count > 0)) return;
+  fetch(SERVER_URL+'/reply/read', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message_id:id})})
+    .then(function(){
+      m.unread_count = 0;
+      (m.replies||[]).forEach(function(r){ r.is_read = true; });
+      myUnreadTotal = myMessages.reduce(function(sum,x){ return sum + (x.unread_count||0); }, 0);
+      updateMyBadge();
+      renderMyMessages();
+    })
+    .catch(function(){});
+}
+
+// ===================================================
+// ADMIN JAVOB YOZISH
+// ===================================================
+function openReplyModal(id) {
+  currentReplyMsgId = id;
+  document.getElementById('reply-textarea').value = '';
+  hideError('err-reply-empty');
+  document.getElementById('reply-modal-overlay').classList.add('open');
+}
+function closeReplyModal() {
+  document.getElementById('reply-modal-overlay').classList.remove('open');
+  currentReplyMsgId = null;
+}
+async function sendReply() {
+  var text = document.getElementById('reply-textarea').value.trim();
+  if (!text) { showError('err-reply-empty'); return; }
+  hideError('err-reply-empty');
+  var btn = document.getElementById('reply-send-btn');
+  btn.disabled = true;
+  var user = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+  var adminName = user ? (user.first_name + (user.last_name ? ' '+user.last_name : '')) : 'Admin';
+  try {
+    var res = await fetch(SERVER_URL+'/reply', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ message_id: currentReplyMsgId, admin_id: currentUserId, admin_name: adminName, text: text })
+    });
+    var data = await res.json();
+    if (data.ok) {
+      var msg = allMessages.find(function(m){ return m.id === currentReplyMsgId; });
+      if (msg) msg.reply_count = (msg.reply_count||0) + 1;
+      if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      closeReplyModal();
+      refreshView();
+    } else throw new Error(data.error||'Xatolik');
+  } catch (err) {
+    alert(t('err_send')+err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===================================================
 // ANON FILTER
 // ===================================================
 function setAnonFilter(val) {
@@ -1155,10 +1385,16 @@ async function checkRoleAndInit() {
       showScreen('admin'); loadAdminMessages();
     } else {
       showScreen('employee');
+      loadMyMessages();
+      if (urlViewMy) openMyRequests();
     }
   } catch (err) {
     if (urlAdminFlag) { isAdmin = true; canDelete = false; showScreen('admin'); loadAdminMessages(); }
-    else { showScreen('employee'); }
+    else {
+      showScreen('employee');
+      loadMyMessages();
+      if (urlViewMy) openMyRequests();
+    }
   }
 }
 
@@ -1256,6 +1492,19 @@ document.addEventListener('DOMContentLoaded', function() {
     opt.addEventListener('click', function(e){e.stopPropagation();setAnonFilter(this.getAttribute('data-anon'));});
   });
   document.addEventListener('click', closeFilterDropdown);
+
+  // Reply modal (admin)
+  document.getElementById('reply-modal-close').addEventListener('click', closeReplyModal);
+  document.getElementById('reply-send-btn').addEventListener('click', sendReply);
+  document.getElementById('reply-modal-overlay').addEventListener('click', function(e){ if (e.target === this) closeReplyModal(); });
+
+  // Periodically refresh "Mening murojaatlarim" unread badge for employees
+  setInterval(function(){
+    if (!currentUserId || isAdmin) return;
+    var empActive = document.getElementById('screen-employee').classList.contains('active');
+    var myActive = document.getElementById('screen-my').classList.contains('active');
+    if (empActive || myActive) loadMyMessages(true);
+  }, 20000);
 });
 </script>
 </body>
