@@ -71,6 +71,29 @@
   }
   .btn-lang-confirm.ready { opacity: 1; }
 
+  /* ===== ROLE SCREEN ===== */
+  #screen-role {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 32px 24px; text-align: center; background: #F3F4F6;
+  }
+  #screen-role.active { display: flex; }
+
+  /* ===== GUEST FIELDS (phone / photo) ===== */
+  .phone-row { display:flex;align-items:center;justify-content:space-between;gap:10px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:14px;margin:0 16px; }
+  .phone-row.shared { border-color: var(--green); background: var(--green-light); }
+  .phone-btn { background:var(--orange);color:white;border:none;border-radius:20px;padding:9px 16px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap; }
+  .phone-btn:disabled { opacity:0.55; }
+  .photo-row { background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:14px;margin:0 16px; }
+  .photo-add-btn { display:flex;align-items:center;gap:8px;color:var(--orange);font-weight:600;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent; }
+  .photo-preview-wrap { position:relative;margin-top:2px;display:inline-block; }
+  .photo-preview { max-width:100%;max-height:180px;border-radius:8px;display:block; }
+  .photo-remove-btn { position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;background:var(--red);color:white;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+
+  /* ===== ADMIN: guest badge / phone / photo ===== */
+  .msg-guest-badge { background:var(--blue-light);color:var(--blue);font-size:11px;font-weight:600;padding:3px 8px;border-radius:10px; }
+  .msg-phone { font-size:12px;color:var(--gray-600);margin-bottom:4px; }
+  .msg-photo-link { display:inline-block;font-size:12px;color:var(--blue);font-weight:600;margin-bottom:6px;text-decoration:none; }
+
   /* ===== EMPLOYEE ===== */
   #screen-employee { padding: 0 0 32px; }
   .header {
@@ -431,6 +454,26 @@
   <button class="btn-lang-confirm" id="btn-lang-confirm" onclick="confirmLang()">Davom etish</button>
 </div>
 
+<!-- ROLE (Filial xodimi / Mehmon) -->
+<div id="screen-role" class="screen">
+  <div class="lang-logo">🙋</div>
+  <div class="lang-title" id="role-title">Siz kimsiz?</div>
+  <div class="lang-sub" id="role-sub">Davom etish uchun tanlang</div>
+  <div class="lang-cards">
+    <div class="lang-card" id="role-employee" onclick="selectRole('employee')">
+      <div class="lang-flag">👔</div>
+      <div class="lang-name" id="role-employee-name">Filial xodimi</div>
+      <div class="lang-native" id="role-employee-desc">Xodimlar uchun</div>
+    </div>
+    <div class="lang-card" id="role-guest" onclick="selectRole('guest')">
+      <div class="lang-flag">🙋</div>
+      <div class="lang-name" id="role-guest-name">Mehmon</div>
+      <div class="lang-native" id="role-guest-desc">Mijozlar uchun</div>
+    </div>
+  </div>
+  <button class="btn-lang-confirm" id="btn-role-confirm" onclick="confirmRole()">Davom etish</button>
+</div>
+
 <!-- EMPLOYEE -->
 <div id="screen-employee" class="screen">
   <div class="header">
@@ -479,6 +522,26 @@
       </div>
       <div class="toggle" id="anon-toggle"></div>
     </div>
+
+    <div class="section-title guest-only" id="st-phone" style="display:none;">Telefon raqam</div>
+    <div class="phone-row guest-only" id="phone-row" style="display:none;">
+      <div class="anonymous-info">
+        <div style="font-size:20px">📞</div>
+        <div class="anon-text"><div class="title" id="phone-title">Raqamingizni ulashing</div><div class="sub" id="phone-sub">Siz bilan bog'lanish uchun</div></div>
+      </div>
+      <button class="phone-btn" id="phone-share-btn">Ulashish</button>
+    </div>
+
+    <div class="section-title guest-only" id="st-photo" style="display:none;">Rasm (ixtiyoriy)</div>
+    <div class="photo-row guest-only" id="photo-row" style="display:none;">
+      <div class="photo-add-btn" id="photo-add-btn"><span>📷</span><span id="photo-add-lbl">Rasmga olish / tanlash</span></div>
+      <input type="file" accept="image/*" capture="environment" id="photo-input" style="display:none;">
+      <div class="photo-preview-wrap" id="photo-preview-wrap" style="display:none;">
+        <img class="photo-preview" id="photo-preview" src="" alt="">
+        <button class="photo-remove-btn" id="photo-remove-btn" type="button">✕</button>
+      </div>
+    </div>
+
     <button class="btn-submit" id="submit-btn"><span>📤</span><span id="btn-submit-lbl">Yuborish</span></button>
   </div>
 </div>
@@ -626,6 +689,26 @@ var LANG = {
     app_title: "Taklif & Shikoyat",
     app_sub: "Xodimlar uchun muloqot platformasi",
     lang_switch_pill: 'RU',
+    // Role screen
+    role_title: "Siz kimsiz?",
+    role_sub: "Davom etish uchun tanlang",
+    role_employee_name: "Filial xodimi",
+    role_employee_desc: "Xodimlar uchun",
+    role_guest_name: "Mehmon",
+    role_guest_desc: "Mijozlar uchun",
+    // Guest: phone
+    st_phone: "Telefon raqam",
+    phone_title: "Raqamingizni ulashing",
+    phone_sub: "Siz bilan bog'lanish uchun",
+    phone_share_btn: "Ulashish",
+    phone_shared_lbl: "✅ Ulashildi",
+    phone_not_supported: "Bu funksiya qo'llab-quvvatlanmaydi",
+    // Guest: photo
+    st_photo: "Rasm (ixtiyoriy)",
+    photo_add_lbl: "Rasmga olish / tanlash",
+    // Admin: guest badge
+    guest_badge: "Mehmon",
+    view_photo: "Rasmni ko'rish",
     // Employee form
     st_type: "Murojaat turini tanlang",
     lbl_taklif: "Taklif",
@@ -732,6 +815,26 @@ var LANG = {
     app_title: "Предложения & Жалобы",
     app_sub: "Платформа общения для сотрудников",
     lang_switch_pill: 'UZ',
+    // Role screen
+    role_title: "Кто вы?",
+    role_sub: "Выберите, чтобы продолжить",
+    role_employee_name: "Сотрудник филиала",
+    role_employee_desc: "Для сотрудников",
+    role_guest_name: "Гость",
+    role_guest_desc: "Для клиентов",
+    // Guest: phone
+    st_phone: "Номер телефона",
+    phone_title: "Поделитесь номером",
+    phone_sub: "Чтобы мы могли связаться с вами",
+    phone_share_btn: "Поделиться",
+    phone_shared_lbl: "✅ Отправлено",
+    phone_not_supported: "Эта функция не поддерживается",
+    // Guest: photo
+    st_photo: "Фото (необязательно)",
+    photo_add_lbl: "Сделать фото / выбрать",
+    // Admin: guest badge
+    guest_badge: "Гость",
+    view_photo: "Смотреть фото",
     st_type: "Выберите тип обращения",
     lbl_taklif: "Предложение",
     desc_taklif: "Идея по улучшению",
@@ -827,6 +930,8 @@ var LANG = {
 var currentLang = 'uz'; // will be set on lang select
 var selectedLangConfirmed = false;
 var selectedType = '', isAnon = false, allMessages = [];
+var selectedRole = '', userType = ''; // 'employee' or 'guest'
+var phoneShared = false, photoBase64 = null;
 var currentMainTab = 'all', currentSubTab = 'new', currentAnonFilter = 'all';
 var dateFrom = null, dateTo = null;
 var isAdmin = false, canDelete = false, userRole = 'user';
@@ -874,6 +979,26 @@ function confirmLang() {
   initApp();
 }
 
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById('role-employee').classList.toggle('selected', role === 'employee');
+  document.getElementById('role-guest').classList.toggle('selected', role === 'guest');
+  document.getElementById('btn-role-confirm').classList.add('ready');
+}
+
+function confirmRole() {
+  if (!selectedRole) return;
+  userType = selectedRole;
+  applyGuestUI();
+  showScreen('employee');
+  loadMyMessages();
+}
+
+function applyGuestUI() {
+  var isGuest = userType === 'guest';
+  document.querySelectorAll('.guest-only').forEach(function(el){ el.style.display = isGuest ? '' : 'none'; });
+}
+
 function switchLang() {
   currentLang = currentLang === 'uz' ? 'ru' : 'uz';
   localStorage.setItem('app_lang', currentLang);
@@ -889,6 +1014,23 @@ function applyLangToUI() {
 
   // Lang screen button
   document.getElementById('btn-lang-confirm').textContent = T.lang_continue;
+
+  // Role screen
+  document.getElementById('role-title').textContent = T.role_title;
+  document.getElementById('role-sub').textContent = T.role_sub;
+  document.getElementById('role-employee-name').textContent = T.role_employee_name;
+  document.getElementById('role-employee-desc').textContent = T.role_employee_desc;
+  document.getElementById('role-guest-name').textContent = T.role_guest_name;
+  document.getElementById('role-guest-desc').textContent = T.role_guest_desc;
+  document.getElementById('btn-role-confirm').textContent = T.lang_continue;
+
+  // Guest: phone / photo
+  document.getElementById('st-phone').textContent = T.st_phone;
+  document.getElementById('phone-title').textContent = T.phone_title;
+  document.getElementById('phone-sub').textContent = T.phone_sub;
+  document.getElementById('phone-share-btn').textContent = phoneShared ? T.phone_shared_lbl : T.phone_share_btn;
+  document.getElementById('st-photo').textContent = T.st_photo;
+  document.getElementById('photo-add-lbl').textContent = T.photo_add_lbl;
 
   // Employee
   document.getElementById('h-title').textContent = T.app_title;
@@ -1065,6 +1207,19 @@ function resetForm() {
   btn.disabled = false;
   btn.innerHTML = '<span>📤</span><span id="btn-submit-lbl">'+t('btn_submit')+'</span>';
   ['err-type','err-filial','err-text'].forEach(hideError);
+
+  // Guest fields reset
+  photoBase64 = null;
+  document.getElementById('photo-input').value = '';
+  document.getElementById('photo-preview-wrap').style.display = 'none';
+  document.getElementById('photo-add-btn').style.display = 'flex';
+  phoneShared = false;
+  document.getElementById('phone-row').classList.remove('shared');
+  var phoneBtn = document.getElementById('phone-share-btn');
+  phoneBtn.disabled = false;
+  phoneBtn.textContent = t('phone_share_btn');
+
+  applyGuestUI();
   showScreen('employee');
 }
 
@@ -1105,11 +1260,14 @@ async function submitForm() {
         time: new Date().toLocaleString('uz-UZ',{timeZone:'Asia/Tashkent'}),
         sender_name: senderName,
         username: user && user.username ? user.username : '',
-        user_id: currentUserId || null
+        user_id: currentUserId || null,
+        user_type: userType || 'employee',
+        photo_base64: photoBase64 || null
       })
     });
     var data = await res.json();
     if (data.ok) {
+      photoBase64 = null;
       if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
       showScreen('success');
     } else throw new Error(data.error||'Xatolik');
@@ -1251,6 +1409,9 @@ function renderMessages(msgs) {
     }
 
     var typeLabel = m.type === 'taklif' ? t('type_taklif') : t('type_shikoyat');
+    var guestBadgeHtml = (m.user_type === 'guest') ? ' <span class="msg-guest-badge">🙋 '+t('guest_badge')+'</span>' : '';
+    var phoneHtml = m.phone ? '<div class="msg-phone">📞 '+escapeHtml(m.phone)+'</div>' : '';
+    var photoHtml = m.photo_url ? '<a class="msg-photo-link" href="'+escapeHtml(m.photo_url)+'" target="_blank" rel="noopener">🖼 '+t('view_photo')+'</a><br>' : '';
     var deleteBtnHtml = (s==='done' && canDelete)
       ? '<button class="delete-btn" onclick="deleteMessage(\''+escapeHtml(m.id)+'\',this)" title="'+t('confirm_delete')+'"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h10M6 4V3h4v1M5 4v8h6V4H5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
       : '';
@@ -1260,11 +1421,12 @@ function renderMessages(msgs) {
 
     return '<div class="message-card '+slClass(s)+'">'+
       '<div class="msg-header"><div class="msg-meta">'+
-        '<span class="msg-type-badge '+m.type+'">'+typeLabel+'</span>'+
+        '<span class="msg-type-badge '+m.type+'">'+typeLabel+'</span>'+guestBadgeHtml+
         '<span class="msg-status-badge '+statusBadgeClass(s)+'">'+statusLabel(s)+'</span>'+
         replyCountHtml+
       '</div><span class="msg-time">'+escapeHtml(m.time)+'</span></div>'+
       (m.filial?'<div class="msg-filial">'+t('filial_lbl')+escapeHtml(m.filial)+'</div>':'')+
+      phoneHtml+photoHtml+
       translatedBadgeHtml+
       '<div class="msg-text">'+escapeHtml(displayText)+'</div>'+
       originalTextHtml+
@@ -1656,7 +1818,9 @@ function closeFilterDropdown() { document.getElementById('filter-dropdown').clas
 // ===================================================
 async function checkRoleAndInit() {
   if (!currentUserId && !urlAdminFlag) {
-    showScreen('employee'); return;
+    if (urlViewMy) { userType = 'employee'; showScreen('employee'); loadMyMessages(); openMyRequests(); }
+    else showScreen('role');
+    return;
   }
   try {
     var res = await fetch(SERVER_URL + '/role/' + (currentUserId || 0));
@@ -1674,16 +1838,26 @@ async function checkRoleAndInit() {
       isAdmin = true; canDelete = false;
       showScreen('admin'); loadAdminMessages();
     } else {
-      showScreen('employee');
-      loadMyMessages();
-      if (urlViewMy) openMyRequests();
+      if (urlViewMy) {
+        userType = 'employee';
+        showScreen('employee');
+        loadMyMessages();
+        openMyRequests();
+      } else {
+        showScreen('role');
+      }
     }
   } catch (err) {
     if (urlAdminFlag) { isAdmin = true; canDelete = false; showScreen('admin'); loadAdminMessages(); }
     else {
-      showScreen('employee');
-      loadMyMessages();
-      if (urlViewMy) openMyRequests();
+      if (urlViewMy) {
+        userType = 'employee';
+        showScreen('employee');
+        loadMyMessages();
+        openMyRequests();
+      } else {
+        showScreen('role');
+      }
     }
   }
 }
@@ -1728,6 +1902,57 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('filial-select').addEventListener('change', function(){
     if(this.value){hideError('err-filial');this.classList.remove('error');}
+  });
+
+  // Guest: phone share via Telegram native contact request
+  document.getElementById('phone-share-btn').addEventListener('click', function(){
+    if (!tg.requestContact) { alert(t('phone_not_supported')); return; }
+    var btn = this;
+    tg.requestContact(function(shared){
+      if (shared) {
+        phoneShared = true;
+        document.getElementById('phone-row').classList.add('shared');
+        btn.textContent = t('phone_shared_lbl');
+        btn.disabled = true;
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      }
+    });
+  });
+
+  // Guest: photo capture / selection with client-side resize
+  document.getElementById('photo-add-btn').addEventListener('click', function(){
+    document.getElementById('photo-input').click();
+  });
+  document.getElementById('photo-input').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var maxDim = 1024;
+        var w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        photoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        document.getElementById('photo-preview').src = photoBase64;
+        document.getElementById('photo-preview-wrap').style.display = 'inline-block';
+        document.getElementById('photo-add-btn').style.display = 'none';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('photo-remove-btn').addEventListener('click', function(){
+    photoBase64 = null;
+    document.getElementById('photo-input').value = '';
+    document.getElementById('photo-preview-wrap').style.display = 'none';
+    document.getElementById('photo-add-btn').style.display = 'flex';
   });
 
   // Main tabs

@@ -10,6 +10,8 @@ import os
 import asyncio
 import threading
 import time as time_module
+import base64
+from io import BytesIO
 import psycopg2
 import psycopg2.extras
 import gspread
@@ -86,10 +88,10 @@ SENT_NOTIFICATIONS = {}
 # ==================== GOOGLE SHEETS ====================
 
 SHEET_HEADERS = [
-    "ID", "Tur / Тип", "Filial / Филиал",
+    "ID", "Tur / Тип", "Kimdan / От кого", "Filial / Филиал",
     "Matn (UZ) / Текст (UZ)", "Matn (RU) / Текст (RU)",
-    "Yuboruvchi / Отправитель", "Anonim / Анонимно",
-    "Til / Язык", "Vaqt / Время", "Status"
+    "Yuboruvchi / Отправитель", "Telefon / Телефон", "Anonim / Анонимно",
+    "Til / Язык", "Vaqt / Время", "Status", "Rasm / Фото"
 ]
 
 def get_sheet():
@@ -104,7 +106,7 @@ def get_sheet():
 
         if sheet.row_count == 0 or sheet.cell(1, 1).value != "ID":
             sheet.insert_row(SHEET_HEADERS, index=1)
-        elif sheet.cell(1, 4).value != "Matn (UZ) / Текст (UZ)":
+        elif sheet.cell(1, 3).value != "Kimdan / От кого":
             sheet.update('A1', [SHEET_HEADERS])
 
         return sheet
@@ -121,12 +123,14 @@ def append_to_sheet(msg):
         msg_type = msg.get("type", "")
         lang = msg.get("lang", "uz")
         is_anon = msg.get("anon", False)
+        user_type = msg.get("user_type", "employee")
 
         if msg_type == "taklif":
             type_label = "Taklif / Предложение"
         else:
             type_label = "Shikoyat / Жалоба"
 
+        kimdan_label = "Mehmon / Гость" if user_type == "guest" else "Xodim / Сотрудник"
         anon_label = "Ha / Да" if is_anon else "Yo'q / Нет"
         lang_label = "O'zbek" if lang == "uz" else "Русский"
 
@@ -141,14 +145,17 @@ def append_to_sheet(msg):
         sheet.append_row([
             msg.get("id", ""),
             type_label,
+            kimdan_label,
             msg.get("filial", ""),
             msg.get("text_uz") or msg.get("text", ""),
             msg.get("text_ru") or msg.get("text", ""),
             msg.get("sender", ""),
+            msg.get("phone", "") or "",
             anon_label,
             lang_label,
             msg.get("time", ""),
             status_label,
+            msg.get("photo_url", "") or "",
         ])
         logger.info(f"Google Sheets ga yozildi (ikki tilda): {msg.get('id')}")
     except Exception as e:
@@ -186,6 +193,10 @@ def init_db():
             ("text_uz", "TEXT", "''"),
             ("text_ru", "TEXT", "''"),
             ("lang", "TEXT", "'uz'"),
+            ("user_type", "TEXT", "'employee'"),
+            ("phone", "TEXT", "''"),
+            ("photo_file_id", "TEXT", "''"),
+            ("photo_url", "TEXT", "''"),
         ]:
             try:
                 cur.execute(f"ALTER TABLE messages ADD COLUMN IF NOT EXISTS {col} {col_type} DEFAULT {default}")
@@ -196,6 +207,16 @@ def init_db():
             cur.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS user_id BIGINT")
         except Exception:
             pass
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS contacts (
+                user_id BIGINT PRIMARY KEY,
+                phone TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS replies (
@@ -241,8 +262,9 @@ def save_message(msg):
         conn = get_conn()
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO messages (id, type, filial, text, text_uz, text_ru, lang, anon, time, sender, status, user_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO messages (id, type, filial, text, text_uz, text_ru, lang, anon, time, sender, status, user_id,
+                                   user_type, phone, photo_file_id, photo_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO NOTHING
         """, (
             msg['id'], msg['type'], msg['filial'],
@@ -254,12 +276,48 @@ def save_message(msg):
             msg['time'], msg['sender'],
             msg.get('status', 'new'),
             msg.get('user_id'),
+            msg.get('user_type', 'employee'),
+            msg.get('phone', '') or '',
+            msg.get('photo_file_id', '') or '',
+            msg.get('photo_url', '') or '',
         ))
         conn.commit()
         cur.close()
         conn.close()
     except Exception as e:
         logger.error(f"save_message xatolik: {e}")
+
+def save_contact(user_id, phone, first_name='', last_name=''):
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO contacts (user_id, phone, first_name, last_name, updated_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (user_id) DO UPDATE SET
+                phone = EXCLUDED.phone,
+                first_name = EXCLUDED.first_name,
+                last_name = EXCLUDED.last_name,
+                updated_at = NOW()
+        """, (user_id, phone, first_name, last_name))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"save_contact xatolik: {e}")
+
+def get_contact_phone(user_id):
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT phone FROM contacts WHERE user_id = %s", (user_id,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return row[0] if row else ''
+    except Exception as e:
+        logger.error(f"get_contact_phone xatolik: {e}")
+        return ''
 
 def delete_message_db(msg_id):
     try:
@@ -544,6 +602,25 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text("❌ Xatolik yuz berdi. / Произошла ошибка.")
 
 
+async def contact_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Mini App'dagi 'Raqamni ulashish' tugmasi bosilganda Telegram avtomatik shu yerga contact yuboradi."""
+    try:
+        contact = update.message.contact
+        if not contact:
+            return
+        user_id = update.effective_user.id
+        # Foydalanuvchi faqat OʻZINING raqamini ulashishi kerak
+        if contact.user_id and contact.user_id != user_id:
+            return
+        save_contact(user_id, contact.phone_number, contact.first_name or '', contact.last_name or '')
+        await update.message.reply_text(
+            "✅ Telefon raqamingiz uchun rahmat! Endi murojaatingizni Mini App orqali yuborishingiz mumkin.\n\n"
+            "✅ Спасибо за номер телефона! Теперь вы можете отправить обращение через Mini App."
+        )
+    except Exception as e:
+        logger.error(f"contact_received xatolik: {e}")
+
+
 async def delete_all_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """'🗑 Hammadan o'chirish' tugmasi — faqat superadmin uchun ishlaydi."""
     query = update.callback_query
@@ -583,6 +660,11 @@ def get_role(telegram_id):
         return jsonify({"ok": True, "role": role, "is_admin": True})
     return jsonify({"ok": True, "role": "user", "is_admin": False})
 
+@flask_app.route("/contact/<int:user_id>", methods=["GET"])
+def contact_check(user_id):
+    phone = get_contact_phone(user_id)
+    return jsonify({"ok": True, "phone": phone})
+
 @flask_app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
     data = request.get_json(force=True)
@@ -608,6 +690,10 @@ def send_message():
         sender_name = data.get('sender_name', "Noma'lum / Неизвестно")
         username    = data.get('username', '')
         tg_user_id  = data.get('user_id') or None
+        user_type   = data.get('user_type') or 'employee'
+        if user_type not in ('employee', 'guest'):
+            user_type = 'employee'
+        photo_b64   = data.get('photo_base64')
 
         uname     = f" @{username}" if username else ""
         real_name = sender_name + uname
@@ -617,30 +703,76 @@ def send_message():
         else:
             display_name = real_name
 
+        # Mehmon bo'lsa — Telegram orqali ulashilgan telefon raqamini bazadan olamiz
+        phone = ''
+        if user_type == 'guest' and tg_user_id:
+            phone = get_contact_phone(int(tg_user_id))
+
+        # Rasm bo'lsa — base64 dan decode qilamiz
+        photo_bytes = None
+        if photo_b64:
+            try:
+                if ',' in photo_b64:
+                    photo_b64 = photo_b64.split(',', 1)[1]
+                photo_bytes = base64.b64decode(photo_b64)
+            except Exception as e:
+                logger.error(f"photo decode xatolik: {e}")
+                photo_bytes = None
+
         # ===== QISQA BILDIRISHNOMA (Telegram chatga shu boriladi) =====
-        # Format: "⚠️ Yangi SHIKOYAT — Anhor filialidan"
+        # Format: "⚠️ Yangi SHIKOYAT — Anhor filialidan (Mehmon)"
         type_label_uz = "SHIKOYAT" if msg_type == "shikoyat" else "TAKLIF"
         emoji = "⚠️" if msg_type == "shikoyat" else "💡"
-        notif_text = f"{emoji} Yangi {type_label_uz} — {filial} filialidan"
+        kimdan_lbl = "Mehmon" if user_type == "guest" else "Xodim"
+        notif_text = f"{emoji} Yangi {type_label_uz} — {filial} filialidan ({kimdan_lbl})"
 
         msg_id = str(int(time_module.time() * 1000))
 
         # Har bir admin uchun rolga mos klaviatura va yuborilgan message_id larni saqlash
         sent_ids = {}
+        photo_file_id = None
         for _aid in ADMIN_IDS:
             buttons = [InlineKeyboardButton("📊 Admin Panel", web_app=WebAppInfo(url=MINI_APP_URL + "?admin=1"))]
             if ADMINS.get(_aid) == "superadmin":
                 buttons.append(InlineKeyboardButton("🗑 Hammadan o'chirish", callback_data=f"delall:{msg_id}"))
             kb = InlineKeyboardMarkup([buttons])
 
-            future = asyncio.run_coroutine_threadsafe(
-                ptb_app.bot.send_message(chat_id=_aid, text=notif_text, reply_markup=kb),
-                loop
-            )
-            sent_msg = future.result(timeout=10)
-            sent_ids[_aid] = sent_msg.message_id
+            try:
+                if photo_bytes:
+                    if photo_file_id:
+                        photo_to_send = photo_file_id
+                    else:
+                        bio = BytesIO(photo_bytes)
+                        bio.name = 'photo.jpg'
+                        photo_to_send = bio
+                    future = asyncio.run_coroutine_threadsafe(
+                        ptb_app.bot.send_photo(chat_id=_aid, photo=photo_to_send, caption=notif_text, reply_markup=kb),
+                        loop
+                    )
+                    sent_msg = future.result(timeout=20)
+                    if not photo_file_id:
+                        photo_file_id = sent_msg.photo[-1].file_id
+                else:
+                    future = asyncio.run_coroutine_threadsafe(
+                        ptb_app.bot.send_message(chat_id=_aid, text=notif_text, reply_markup=kb),
+                        loop
+                    )
+                    sent_msg = future.result(timeout=10)
+                sent_ids[_aid] = sent_msg.message_id
+            except Exception as e:
+                logger.error(f"admin bildirishnoma xatolik ({_aid}): {e}")
 
         SENT_NOTIFICATIONS[msg_id] = sent_ids
+
+        # Rasm uchun to'g'ridan-to'g'ri havola (admin panel/Sheets uchun)
+        photo_url = ''
+        if photo_file_id:
+            try:
+                file_future = asyncio.run_coroutine_threadsafe(ptb_app.bot.get_file(photo_file_id), loop)
+                tg_file = file_future.result(timeout=15)
+                photo_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{tg_file.file_path}"
+            except Exception as e:
+                logger.error(f"get_file xatolik: {e}")
 
         # To'liq ma'lumot — faqat DB ga (Mini App buni o'qiydi)
         msg = {
@@ -656,6 +788,10 @@ def send_message():
             "sender":  display_name,
             "status":  "new",
             "user_id": tg_user_id,
+            "user_type": user_type,
+            "phone": phone,
+            "photo_file_id": photo_file_id or '',
+            "photo_url": photo_url,
         }
         save_message(msg)
 
@@ -671,11 +807,14 @@ def send_message():
             "anon":    anon,
             "time":    time_str,
             "sender":  real_name,
-            "status":  "new"
+            "status":  "new",
+            "user_type": user_type,
+            "phone": phone,
+            "photo_url": photo_url,
         }
         threading.Thread(target=append_to_sheet, args=(sheet_msg,), daemon=True).start()
 
-        logger.info(f"Yangi {msg_type}: {filial} — {'anonim' if anon else sender_name} [{lang}]")
+        logger.info(f"Yangi {msg_type} [{kimdan_lbl}]: {filial} — {'anonim' if anon else sender_name} [{lang}]")
         return jsonify({"ok": True})
 
     except Exception as e:
@@ -985,6 +1124,7 @@ def run():
     ptb_app = Application.builder().token(BOT_TOKEN).build()
     ptb_app.add_handler(CommandHandler("start", start))
     ptb_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
+    ptb_app.add_handler(MessageHandler(filters.CONTACT, contact_received))
     ptb_app.add_handler(CallbackQueryHandler(delete_all_callback, pattern=r"^delall:"))
 
     loop.run_until_complete(ptb_app.initialize())
